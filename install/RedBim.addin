@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>RedBim</Name>
+    <Assembly>C:\ProgramData\Autodesk\Revit\Addins\2019\RedBim\loader\RedBimLoader.dll</Assembly>
+    <ClientId>1ff8229e-eb6d-4d70-a947-0f888cdb031d</ClientId>
+    <FullClassName>RedBimLoader.RedBimLoaderApplication</FullClassName>
+  <VendorId>RedBim</VendorId>
+  <VendorDescription>https://vk.com/redbim</VendorDescription>
+  </AddIn>
+</RevitAddIns>
