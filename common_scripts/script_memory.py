@@ -17,7 +17,6 @@ class SMemory:
         if not self.create_conf():
             self.read_conf()
         # echo('Начинаем работу',self.attributes)
-
     @property
     def script_name(self):
         return os.path.basename(self.s_path)

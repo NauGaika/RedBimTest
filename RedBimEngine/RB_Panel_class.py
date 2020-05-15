@@ -16,22 +16,24 @@ from RB_Pushbutton_class import RB_Pushbutton  # Подгружаем класс
 class RB_Panel:
     """Класс по созданию панелей. Используется в RB_Tab_class."""
 
-    def __init__(self, direct, parent, is_user=False):
+    def __init__(self, direct, parent, is_user=False, childs=[]):
         """direct, parent, is_user."""
-        echo('***********************')
+        # echo('***********************')
+        self.data = childs
         self.is_user = is_user
         self.pushbutton = []  # Все кнопки в панели depricated
         self.path = direct
         self.parent = parent
+        echo(self.name)
         self.sys_panel = self.create_panel()  # Ревитовский объект с панелью
         self.controls = self.control_finder()  # Все кнопки в панели
 
     @property
     def rev_panel(self):
         """Находит ревитовскую панель и возвращает ее"""
-        echo(self.parent.name)
+        # echo(self.parent.name)
         for panel in __revit__.GetRibbonPanels(self.parent.name):
-            echo(panel)
+            # echo(panel)
             if panel.Title == self.name:
                 return panel
     @property
@@ -48,32 +50,38 @@ class RB_Panel:
     @property
     def panel_is_exist(self):
         """Проверяет наличие панели в данной вкладке."""
-        echo("Панель " + self.name + " уже есть во вкладке "
-             + self.parent.name + " ?")
-        print(self.parent.name)
+        # echo("Панель " + self.name + " уже есть во вкладке "
+             # + self.parent.name + " ?")
+        # print(self.parent.name)
         for panel in __revit__.GetRibbonPanels(self.parent.name):
             if panel.Name == self.name:
-                echo("да")
+                # echo("да")
                 return panel
-        echo("нет")
+        # echo("нет")
         return False
 
     def create_panel(self):
         """Создаем ревитовскую панель и сохраняем ее в sys_tab."""
         nrp = self.panel_is_exist
         if not nrp:
-            echo("Пытаемся создать панель " + self.name)
+            # echo("Пытаемся создать панель " + self.name)
             nrp = __revit__.CreateRibbonPanel(self.parent.name, self.name)
         return nrp
 
-        echo("Панель " + self.name + " существует")
+        # echo("Панель " + self.name + " существует")
 
     def control_finder(self):
         """Ищет все кнопки в нужной папке."""
         controls = []
         files = os.listdir(self.path)
         for file in files:
-            controls.append(self.type_of_item(file))
+            for j in self.data:
+                if j["name"] == file:
+                    if j["active"]:
+                        controls.append(self.type_of_item(file))
+                    break
+            else:
+                controls.append(self.type_of_item(file))
         return controls
 
     def type_of_item(self, name):

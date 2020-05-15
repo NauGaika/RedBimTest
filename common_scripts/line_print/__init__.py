@@ -15,12 +15,12 @@ class Line_printer:
                 return i
 
     @classmethod
-    def print_curve_loop(cls, cl):
+    def print_curve_loop(cls, cl, color='еленая'):
         for elem in cl:
             if isinstance(elem, Line):
-                cls.print_arc(elem.GetEndPoint(0), cl.GetPlane())
+                # cls.print_arc(elem.GetEndPoint(0), cl.GetPlane(), radius=0.05)
                 cls.print_line(elem.GetEndPoint(0), elem.GetEndPoint(1),
-                               cl.GetPlane())
+                               cl.GetPlane(), color=color)
         # for
         # cls.print_arc(, cl.GetPlane())
 
@@ -43,7 +43,7 @@ class Line_printer:
         return m_line
 
     @classmethod
-    def print_arc(cls, point, plane=None, radius=0.3):
+    def print_arc(cls, point, plane=None, radius=0.3, color="еленая"):
         doc = __revit__.ActiveUIDocument.Document
         active_view = doc.ActiveView
         creDoc = __revit__.ActiveUIDocument.Document.Create
@@ -60,10 +60,11 @@ class Line_printer:
             new_arc,
             sketchPlane
         )
+        m_line.LineStyle = cls.get_line_style(color=color)
         return m_line
 
     @classmethod
-    def print_curve(cls, curve, color):
+    def print_curve(cls, curve, color='еленая'):
         doc = __revit__.ActiveUIDocument.Document
         active_view = doc.ActiveView
         creDoc = __revit__.ActiveUIDocument.Document.Create

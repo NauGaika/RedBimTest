@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from System.Windows.Forms import Application, Form, DockStyle, BorderStyle
+from System.Windows.Forms import Control
 from System.Drawing import Color
 from common_scripts.form_creator.panel_class import MyPanel
 from common_scripts import *

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-sys.path.append('\\\\picompany.ru\\pikp\\Dep\\LKP4\\WORK\\scripts')
+sys.path.append('L:\\09_Программы\\RedBim')
 
 import os.path as op
 # Добавляем адресс
@@ -9,4 +9,4 @@ import os.path as op
 # Запускаем движок
 import RedBimEngine
 # developer=True
-RedBimEngine.find_all_tab(developer=True)
+RedBimEngine.find_all_tab()

@@ -10,7 +10,7 @@ class Get_revit_elements:
     """Класс для поиска элементов в Revit."""
 
     @classmethod
-    def get_elems_by_category(cls, doc, category_class, active_view=None, name=None):
+    def get_elems_by_category(cls, category_class, active_view=None, name=None):
         """Получение элемента по классу категории."""
         if not active_view:
             els = FilteredElementCollector(doc).OfClass(category_class).\
@@ -23,7 +23,7 @@ class Get_revit_elements:
         return els
 
     @classmethod
-    def get_elems_by_builtinCategory(cls, built_in_cat, include=[],
+    def get_elems_by_builtinCategory(cls, built_in_cat=None, include=[],
                                      active_view=None):
         """Получение элемента по встроенному классу."""
         if not include:
@@ -41,5 +41,5 @@ class Get_revit_elements:
                 else:
                     els = FilteredElementCollector(doc, active_view).\
                           OfCategory(built_in_cat)
-                new_list += els.OfClass(i).ToElements()
+                new_list += els.ToElements()
             return new_list

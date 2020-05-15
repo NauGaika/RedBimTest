@@ -20,7 +20,7 @@ class RB_Pushbutton:
         self.is_user = is_user
         self.path = direct
         self.parent = parent
-        echo("Начинаем создание кнопки " + self.name)
+        # echo("Начинаем создание кнопки " + self.name)
         panel = self.parent.sys_panel
         if panel:
             self.__class__.PB_count = self.__class__.PB_count + 1
@@ -29,21 +29,23 @@ class RB_Pushbutton:
 
     def get_button_or_create(self):
         """Существует ли кнопка. Если да - вернем ее."""
-        echo("Существует ли кнопка " + self.name)
+        # echo("Существует ли кнопка " + self.name)
         self.button = self.pushbutton_is_exist()
         if not self.button:
-            echo("Нет")
+            # echo("Нет")
             self.button = self.parent.sys_panel.AddItem(self.create_PPBD())
         else:
-            echo("Да")
+            pass
+            # echo("Да")
 
     def create_PPBD(self):
         """Создает экземпляр PPBD."""
-        echo("Создаем экземпляр PPBD " + self.name)
-        echo("Путь " + self.script_path)
+        # echo("Создаем экземпляр PPBD " + self.name)
+        # echo("Путь " + self.script_path)
+        echo(self.name)
         return PyPushButtonData(
                 self.name + str(self.PB_count),
-                self.name + str(self.PB_count),
+                self.name,
                 self.script_path,
                 __revit__,
                 START_SCRIPT
@@ -60,16 +62,19 @@ class RB_Pushbutton:
         """Получает имя pushbutton."""
         name = ""
         if not self.is_user:
-            pattern = r'[0-9A-Za-zА-Яа-яёЁ_ -]+\.pushbutton$'
-            result = re.search(pattern, self.path)
-            line = result.group(0)
-            name = line.split('.')[0]
+            name = os.path.basename(self.path)
+            name = name.replace(".pushbutton", "")
         return name
 
     def add_image(self):
         """Добавляем картинку."""
         self.img_uri = Uri(self.image)
-        self.button.LargeImage = BitmapImage(self.img_uri)
+        self.button.LargeImage = BitmapImage()
+        self.button.LargeImage.BeginInit()
+        self.button.LargeImage.UriSource = self.img_uri
+        self.button.LargeImage.DecodePixelHeight = 32
+        self.button.LargeImage.DecodePixelWidth = 32
+        self.button.LargeImage.EndInit();
         self.button.Image = BitmapImage()
         self.button.Image.BeginInit()
         self.button.Image.UriSource = self.img_uri
@@ -95,4 +100,9 @@ class RB_Pushbutton:
     @property
     def image(self):
         """Картинка данной кнопки."""
-        return os.path.join(STATIC_IMAGE, 'standart_lage_image.png')
+        # echo(self.path)
+        img_src = "icon.png"
+        path = os.path.join(self.path, img_src)
+        if os.path.exists(path):
+            return path
+        return os.path.join(STATIC_IMAGE, "standart_lage_image.png")

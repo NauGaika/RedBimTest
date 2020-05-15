@@ -16,11 +16,12 @@ clr.AddReference('RevitAPI')
 clr.AddReference('RevitAPIUI')
 clr.AddReference('AdWindows')
 clr.AddReference("UiFramework")
+clr.AddReference('System.Web')
 
 
 # Добавляю загрузчику папку
 sys.path.append(
-    '\\\\picompany.ru\\pikp\\Dep\\LKP4\\WORK\\scripts\\loader')
+    'L:\\09_Программы\\RedBim\\loader')
 clr.AddReferenceToFileAndPath('PyPushButtonData')
 from Tab_finder import find_all_tab
 

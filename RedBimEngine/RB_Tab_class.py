@@ -16,27 +16,29 @@ class RB_Tab:
     panels = []
     sys_tab = None
 
-    def __init__(self, direct, script_path, is_user=False):
+    def __init__(self, direct, script_path, is_user=False, childs=[]):
         """Инициализируем наш объект. Передать direct, is_user."""
+        self.data = childs
         self.is_user = is_user
         self.panels = []
         self.sys_tab = None
         self.path = os.path.join(script_path, direct)
-        echo("Создаем вкладку " + self.name)
+        # echo("Создаем вкладку " + self.name)
         self.tab_is_create = False
         try:
             if not self.tab_is_exist():
                 self.sys_tab = self.create_tab()
         except Exception:
-            echo("Ошибка при создании вкладки " + self.name)
-        echo("Ищем панели в " + self.name)
+            pass
+            # echo("Ошибка при создании вкладки " + self.name)
+        # echo("Ищем панели в " + self.name)
         self.find_panel()
 
     def tab_is_exist(self):
         """Вкладка уже существует?."""
         addWinRibbon = AdWin.ComponentManager.Ribbon
         if addWinRibbon.FindTab(self.name):
-            echo('Вкладка ' + self.name + ' существует')
+            # echo('Вкладка ' + self.name + ' существует')
             return True
 
     def remove_tab(self):
@@ -83,7 +85,14 @@ class RB_Tab:
                 pattern = r'panel$'
                 result = re.search(pattern, line)
                 if result:
-                    panel_path = os.path.join(self.path, i)
-                    echo("Создаем панель по пути " + panel_path)
-                    new_panel = RB_Panel(panel_path, self)
-                    self.panels.append(new_panel)
+                    for j in self.data:
+                        if j["name"] == line:
+                            if j["active"]:
+                                panel_path = os.path.join(self.path, i)
+                                new_panel = RB_Panel(panel_path, self, childs=j["childs"])
+                                self.panels.append(new_panel)
+                            break
+                    else:
+                        panel_path = os.path.join(self.path, i)
+                        new_panel = RB_Panel(panel_path, self)
+                        self.panels.append(new_panel)
