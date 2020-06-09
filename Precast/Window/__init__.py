@@ -29,21 +29,25 @@ class Precast_window(Precast_component, Precast_window_validate, Precast_json_te
         self.error_message = ""
         self.parent.add_child(self)
 
+        
         if self.is_valid:
-            json_par = self.prepare_json(self.json)
-            if self.develop:
-                self.element.LookupParameter("JSON").Set(json_par)
-            result = self.UrlOpen(self.URI, parameters=json_par)
-            if "exception" in result.keys():
-                echo("{} exception с сервера \"{}\"".format(
-                    self, result["exception"]["Message"]))
-                pass
-            elif "errors" in result.keys():
-                echo("{} errors с сервера \"{}\"".format(
-                    self, result["errors"]))
-            else:
-                self.server_window_obj = result
-                self.server_id = result["id"]
+            if self.analys_geometry and self.parent.is_analysed:
+                if self.json:
+                    json_par = self.prepare_json(self.json)
+                    # echo(json_par)
+                    if self.develop:
+                        self.element.LookupParameter("JSON").Set(json_par)
+                    result = self.UrlOpen(self.URI, parameters=json_par)
+                    if "exception" in result.keys():
+                        echo("{} exception с сервера \"{}\"".format(
+                            self, result["exception"]["Message"]))
+                        pass
+                    elif "errors" in result.keys():
+                        echo("{} errors с сервера \"{}\"".format(
+                            self, result["errors"]))
+                    else:
+                        self.server_window_obj = result
+                        self.server_id = result["id"]
         else:
             echo(self.error_message)
 
@@ -120,7 +124,6 @@ class Precast_window(Precast_component, Precast_window_validate, Precast_json_te
         return self._start_point
 
     def make_real_point(self):
-        # Тут костыль в виде 20 мм
         if not hasattr(self, "_real_point"):
             vx = self.parent.vect_abscis
             vy = self.parent.vect_ordinat
@@ -165,14 +168,14 @@ class Precast_window(Precast_component, Precast_window_validate, Precast_json_te
     @property
     def hole_parameter(self):
         # Параметр необходим, для заполнения BDS_Hole у панели
-        w = self.element.LookupParameter("Рзм.Ширина").AsDouble() * 304.8
-        h = self.element.LookupParameter("Рзм.Высота").AsDouble() * 304.8
+        w = self["Рзм.Ширина"]
+        h = self["Рзм.Высота"]
         return "{}x{}".format(int(w), int(h))
 
     @property
     def mesure(self):
-        w = round(self.element.LookupParameter("Рзм.Ширина").AsDouble() * 304.8, 2)
-        h = round(self.element.LookupParameter("Рзм.Высота").AsDouble() * 304.8, 2)
+        w = round(self["Рзм.Ширина"], 2)
+        h = round(self["Рзм.Высота"], 2)
         z = round(self.make_real_point().Z * 304.8, 2)
         res_str = "   {}x{} подоконник {}".format(w, h, z)
         return res_str

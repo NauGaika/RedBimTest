@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-sys.path.append('\\\\picompany.ru\\pikp\\Dep\\LKP4\\WORK\\scripts')
+sys.path.append(r'L:\09_Программы\RedBim\loader\scripts')
 
 import os.path as op
 # Добавляем адресс

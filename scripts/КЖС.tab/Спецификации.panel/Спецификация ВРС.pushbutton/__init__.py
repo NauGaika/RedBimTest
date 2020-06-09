@@ -1,8 +1,11 @@
 from Autodesk.Revit.DB import Transaction,\
-    FilteredElementCollector, BuiltInCategory
+    FilteredElementCollector, BuiltInCategory, ElementId
 from Autodesk.Revit.DB import ParameterType
 from common_scripts.RB_Scheduled import RB_Scheduled
 from common_scripts import echo
+
+from System.Collections.Generic import List
+
 import csv
 import os
 import json
@@ -39,17 +42,22 @@ class StructuralFraming(object):
     }
 
     def __init__(self, el, csv_dict):
+        self.error = False
+        # echo(self)
         self.file_path = file_path
         self.csv = csv_dict
         self.el = el
         # echo(self["МатериалИмя"])
         self.name, self.gost, self.weight = self.get_parameters_from_csv()
-        self.mass = self.calculate_mass()
-        # echo(self.name, self.mass)
-        self.add_to_summary_structure()
+        if self.name and self.gost:
+            self.mass = self.calculate_mass()
+            # echo(self.name, self.mass)
+            self.add_to_summary_structure()
+        else:
+            self.error = "{} отсутствует в сортаменте Арм.КлассЧисло {}".format(self, self[par_names["КлассЧисло"]])
 
     def __repr__(self):
-        return self.el.Symbol.Family.Name
+        return "{} {} ".format(self.el.Symbol.Family.Name, self.el.Id)
 
     def __getitem__(self, key):
         par = self.get_param(key)
@@ -114,33 +122,37 @@ class StructuralFraming(object):
         name_dict[group_vrs] += self.mass
 
     def calculate_mass(self):
+        print("Подсчет массы")
         calc_type = self[par_names["Подсчет"]]
         mass = 0
-        if calc_type:
-            calc_type = calc_type % 100
-            if calc_type == 1:
-                mass = self["Количество"] * \
-                    self["МассаПМ"]
-            elif calc_type == 2:
-                mass = self["Количество"] * \
-                    self["МассаПМ"] * \
-                    self["Длина"] / 1000
-            elif calc_type == 3:
-                mass = self["Количество"] * \
-                    self["МассаПМ"] * \
-                    self["Площадь"] / 1000**2
-            elif calc_type == 4:
-                mass = self["Количество"] * \
-                    self["МассаПМ"] * \
-                    self["Объем"] / 100**3
-            elif calc_type == 5:
-                mass = self["Количество"] * \
-                    self["Масса"]
-            elif calc_type == 6:
-                mass = self["Количество"]
-            elif calc_type == 12:
-                mass = self["МатериалОбъем"] / 1000**3 * \
-                    self["МатериалПлотность"]
+        try:
+            if calc_type:
+                calc_type = calc_type % 100
+                if calc_type == 1:
+                    mass = self["Количество"] * \
+                        self["МассаПМ"]
+                elif calc_type == 2:
+                    mass = self["Количество"] * \
+                        self["МассаПМ"] * \
+                        self["Длина"] / 1000
+                elif calc_type == 3:
+                    mass = self["Количество"] * \
+                        self["МассаПМ"] * \
+                        self["Площадь"] / 1000**2
+                elif calc_type == 4:
+                    mass = self["Количество"] * \
+                        self["МассаПМ"] * \
+                        self["Объем"] / 100**3
+                elif calc_type == 5:
+                    mass = self["Количество"] * \
+                        self["Масса"]
+                elif calc_type == 6:
+                    mass = self["Количество"]
+                elif calc_type == 12:
+                    mass = self["МатериалОбъем"] / 1000**3 * \
+                        self["МатериалПлотность"]
+        except:
+            echo("Ошибка в подсчете массы, {}".format(self)) 
         return mass
 
     def get_param(self, param_tuple):
@@ -244,13 +256,6 @@ class ElementFinder(object):
         sched.set_row_val(end, pos, gen_sum)
 
         sched.merge_cell(0, 1, 0, 4)
-                    # sched.merge_cell(end_steel, end_steel+end_gost, end, 0)
-                    # echo(end_steel)
-
-            #         sched.merge_cell(0, 0, len(width) - 1, 0)
-            #     sched.merge_cell(0, 0, len(width) - 1, 0)
-            # sched.merge_cell(0, 0, len(width) - 1, 0)
-        # sched.merge_cell(0, 0, end, 0)
 
     @property
     def structural_framing(self):
@@ -264,11 +269,19 @@ class ElementFinder(object):
                     fec = cur_elements
                 else:
                     fec.UnionWith(cur_elements)
+            eror_elements = List[ElementId]()
             for el in fec.ToElements():
                 par = self.get_parameter(el, par_names["КлассЧисло"])
                 if par and par.AsDouble():
-                    self._structural_framing.append(
-                        StructuralFraming(el, self.csv_dict))
+                    new_el = StructuralFraming(el, self.csv_dict)
+                    if not new_el.error:
+                        self._structural_framing.append(new_el)
+                    else:
+                        eror_elements.Add(el.Id)
+                        echo(new_el.error)
+            if eror_elements.Count:
+                echo("Ошибочные элементы выделены в проекте.")
+                uidoc.Selection.SetElementIds(eror_elements)
         return self._structural_framing
 
     def get_parameter(self, element, parameter):

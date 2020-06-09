@@ -30,7 +30,8 @@ class Precast_panel_analys_geometry(object):
 
     def find_section(self, point=None, direction=None, x=None, y=None):
         solids = self.concate_all_elements_by_materials()
-        # echo(self)
+        if not solids:
+            echo("У панели {} не найден ни один материал. \nВозможно не назначен параметр BDS_LayerNumber у материалов.\n".format(self))
         all_faces = {}
         # Находим поверхности, которые находятся на пересечении
         for key, solid in solids.items():

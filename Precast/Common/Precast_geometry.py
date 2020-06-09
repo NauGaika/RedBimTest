@@ -81,8 +81,8 @@ class Precast_geometry(object):
                             if not JoinGeometryUtils.IsCuttingElementInJoin(self.doc, element_2.element, element_1.element):
                                 JoinGeometryUtils.SwitchJoinOrder(self.doc, element_2.element, element_1.element)
                         except:
-                            # Сюда попадают арматруные стер
-                            echo("Ошибка в объединении {} с {}".format(element_1, element_2))
+                            # echo("Ошибка в объединении {} с {}".format(element_1, element_2))
+                            pass
                 except InvalidOperationException:
                     result.add(element_1)
         return result

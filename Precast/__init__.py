@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from .Precast_finder import Precast_finder
+from .Config import ParameterChecker
 from common_scripts.line_print import Line_printer
 import json
 from common_scripts import echo
@@ -22,6 +23,7 @@ class Precast(Precast_finder):
         "Создаем объект на основе документа проекта."
         self.uidoc = __revit__.ActiveUIDocument
         self.doc = self.uidoc.Document
+        ParameterChecker(self.doc)
         self.analys_geometry = analys_geometry
         self.create_new_panel = create_new_panel
         self.old_format_path = old_format_path
@@ -48,7 +50,7 @@ class Precast(Precast_finder):
         for i in self.panels:
             i.set_mass_parameter()
             i.set_volume_parameter()
-            i.join_units_to_panel()
+            i.join_units_and_windows_to_panel()
             if i.is_analysed:
                 js = i.json
                 if i.is_valid:
@@ -78,7 +80,7 @@ class Precast(Precast_finder):
                                 echo("Назначена предварительная марка {} элементу {}".format(
                                     i["value"]["mark"], j.Id))
                                 j.advance_tag = i["value"]["mark"]
-                                j.system_tag = ""
+                                # j.system_tag = ""
                                 j.tag = template_for_mark.split(
                                     i["value"]["mark"])[1] + "(prev)"
                                 j.status = "2"
@@ -131,7 +133,7 @@ class Precast(Precast_finder):
         """
         self.all_panels = True
         for i in self.panels:
-            i.join_units_to_panel()
+            i.join_units_and_windows_to_panel()
 
     def set_mass(self):
         "Устанавливаем значение массы каждой панели."

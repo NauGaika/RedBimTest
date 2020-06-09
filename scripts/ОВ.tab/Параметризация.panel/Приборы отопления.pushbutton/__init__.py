@@ -144,7 +144,7 @@ class RB_Radiator:
             self.set_parameter("BS_Изготовитель", self.producer)
             self.set_parameter("BS_Наименование", self.description)
             self.set_parameter("MEP_Габаритная длина", self.length)
-            self.set_parameter("BS_Обозначение", self.symbol)
+            self.set_parameter("BS_Маркировка", self.symbol)
             self.set_parameter("MEP_Стояк_номер", self.riser)
             self.set_parameter("OV_Номер пространства", self.space_number)
             self.set_parameter("MEP_Диаметр 1", self.diameter)
@@ -246,7 +246,7 @@ class Radiator_Parametrization:
             "BS_Изготовитель": BuiltInParameterGroup.PG_TEXT,
             "BS_Наименование": BuiltInParameterGroup.PG_TEXT,
             "MEP_Габаритная длина": BuiltInParameterGroup.PG_GEOMETRY,
-            "BS_Обозначение": BuiltInParameterGroup.PG_TEXT,
+            "BS_Маркировка": BuiltInParameterGroup.PG_TEXT,
             "MEP_Стояк_номер": BuiltInParameterGroup.PG_TEXT,
             "OV_Номер пространства": BuiltInParameterGroup.PG_TEXT,
             "MEP_Диаметр 1": BuiltInParameterGroup.PG_GEOMETRY,

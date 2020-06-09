@@ -93,7 +93,7 @@ class Precast_panel(Precast_component, Precast_panel_validate, Precast_panel_fin
                 if self.analys_geometry and self.geometrical:
                     self.make_analys_geometry()
                     self.set_windows_to_panel()
-                    # self.add_ifc_parameter()
+                    self.add_ifc_parameter()
             else:
                 echo(
                     "Ошибки в получении параметров у панели {} {}".format(self, sys.exc_info()[1]))
@@ -199,9 +199,11 @@ class Precast_panel(Precast_component, Precast_panel_validate, Precast_panel_fin
         for i in self.element.GetParameters("BDS_Hole"):
             i.Set(res)
 
-    def join_units_to_panel(self):
+    def join_units_and_windows_to_panel(self):
         for i in self.units:
             self.join_elements([self], i.subcomponents)
+        self.join_elements([self], [i for i in self.windows])
+
 
     # Эта часть для выгрузки в колористику
     def make_old_format(self, result, old_format_path):

@@ -11,6 +11,7 @@ class Precast_component(Precast_validator, Precast_geometry):
         self.children = set()
         self.element = element
         self.doc = doc
+        self.document = doc
         self.transform = self.element.GetTransform()
         self.analys_geometry = analys_geometry
         self._default_option = self.__class__.option_medium

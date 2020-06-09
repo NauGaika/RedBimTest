@@ -42,7 +42,7 @@ class Precast_json_template(object):
             self._json = None
             element = self.element
             params = self.all_dict_parameters
-            if element.GetTransform().BasisY.Z > 0:
+            if element.GetTransform().BasisY.Z > 0 or element.GetTransform().BasisY.IsAlmostEqualTo(element.FacingOrientation):
                 par_name = "JSON_Template"
             else:
                 par_name = "JSON_Template_Reflect"
@@ -125,4 +125,5 @@ class Precast_json_template(object):
                         json_result = json_result.replace(
                             val_to_replace, str(resalt_calc), 1)
                         self._json = json_result
+            # echo(self.json)
         return self._json
