@@ -2,7 +2,7 @@
 """Добавляем необходимые фильтры для КЖ"""
 # import os
 import re
-
+import sys
 import clr
 from clr import StrongBox
 
@@ -125,19 +125,22 @@ class Line_by_room(IExternalEventHandler):
         FORM.exEvent.Raise()
         
     def Execute(self, app):
-        self.form_val = {i: to_feet(int(self.form_val[i].GetValue())) for i in self.form_val.keys() if self.form_val[i].GetValue().isdigit()}
-        with Transaction(doc, 'Рисуем линии') as t:
-            t.Start()
-            for room in self.room_lines:
-                # echo(room)
-                for type_name, lines in room.items():
-                    if type_name in self.form_val.keys():
-                        lines = self.add_offset(lines, self.form_val[type_name])
-                        # echo(self.get_graphic_styles(type_name))
-                        self.print_line_by_face(lines, self.get_graphic_styles(type_name), type_name)
-                    else:
-                        message('Не задан отступ для типоразмера {} линия создана не будте'.format(type_name))
-            t.Commit()
+        try:
+            self.form_val = {i: to_feet(int(self.form_val[i].GetValue())) for i in self.form_val.keys() if self.form_val[i].GetValue().isdigit()}
+            with Transaction(doc, 'Рисуем линии') as t:
+                t.Start()
+                for room in self.room_lines:
+                    # echo(room)
+                    for type_name, lines in room.items():
+                        if type_name in self.form_val.keys():
+                            lines = self.add_offset(lines, self.form_val[type_name])
+                            # echo(self.get_graphic_styles(type_name))
+                            self.print_line_by_face(lines, self.get_graphic_styles(type_name), type_name)
+                        else:
+                            message('Не задан отступ для типоразмера {} линия создана не будте'.format(type_name))
+                t.Commit()
+        except:
+            echo(sys.exc_info()[1])
         FORM.Close()
         
     def GetName(self):
@@ -349,7 +352,7 @@ class Line_by_room(IExternalEventHandler):
                     max_distance = (i, b, distance)
         return (max_distance[0], max_distance[1])
 
-    def clt_by_face(self, lines, graphic_syles, name):
+    def print_line_by_face(self, lines, graphic_syles, name):
         """Рисует линии для которых есть типоразмер
         
         На вход подаем:

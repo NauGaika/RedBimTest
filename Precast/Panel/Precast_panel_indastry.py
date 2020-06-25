@@ -90,7 +90,7 @@ class Precast_panel_indastry(object):
                         window_type += " загиб"
                 window["BDS_PositionType"] = window_type
             else:
-                echo("{} Не обновлено либо не имеет параметр Тип окна".format(self))
+                echo("{} Не обновлено либо не имеет параметр Тип окна".format(window))
 
         parameters["Window"] = windows_count
         parameters["Balkony"] = balcony_count
