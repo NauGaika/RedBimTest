@@ -27,7 +27,7 @@ project_parameters = {
         "type": "Currency",
         "is_type": False,
         "change_in_group": True,
-        "in_family": True,
+        "in_family": False,
         "categoryes": panel_category + connection_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
@@ -36,7 +36,7 @@ project_parameters = {
         "type": "Currency",
         "is_type": False,
         "change_in_group": True,
-        "in_family": True,
+        "in_family": False,
         "categoryes": panel_category + connection_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
@@ -180,7 +180,7 @@ project_parameters = {
         "categoryes": panel_category + window_category + connection_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor01": {
+    "BDS_ColoristicsTag_Floor01": {
         "description": """
         Коллористическая марка.
         """,
@@ -191,7 +191,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor02": {
+    "BDS_ColoristicsTag_Floor02": {
         "description": """
         Коллористическая марка.
         """,
@@ -202,7 +202,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor03": {
+    "BDS_ColoristicsTag_Floor03": {
         "description": """
         Коллористическая марка.
         """,
@@ -213,7 +213,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor04": {
+    "BDS_ColoristicsTag_Floor04": {
         "description": """
         Коллористическая марка.
         """,
@@ -224,7 +224,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor05": {
+    "BDS_ColoristicsTag_Floor05": {
         "description": """
         Коллористическая марка.
         """,
@@ -235,7 +235,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor06": {
+    "BDS_ColoristicsTag_Floor06": {
         "description": """
         Коллористическая марка.
         """,
@@ -246,7 +246,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor07": {
+    "BDS_ColoristicsTag_Floor07": {
         "description": """
         Коллористическая марка.
         """,
@@ -257,7 +257,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor08": {
+    "BDS_ColoristicsTag_Floor08": {
         "description": """
         Коллористическая марка.
         """,
@@ -268,7 +268,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor09": {
+    "BDS_ColoristicsTag_Floor09": {
         "description": """
         Коллористическая марка.
         """,
@@ -279,7 +279,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor10": {
+    "BDS_ColoristicsTag_Floor10": {
         "description": """
         Коллористическая марка.
         """,
@@ -290,7 +290,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor11": {
+    "BDS_ColoristicsTag_Floor11": {
         "description": """
         Коллористическая марка.
         """,
@@ -301,7 +301,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor01": {
+    "BDS_ColoristicsTag_Floor01": {
         "description": """
         Коллористическая марка.
         """,
@@ -312,7 +312,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor12": {
+    "BDS_ColoristicsTag_Floor12": {
         "description": """
         Коллористическая марка.
         """,
@@ -323,7 +323,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor13": {
+    "BDS_ColoristicsTag_Floor13": {
         "description": """
         Коллористическая марка.
         """,
@@ -334,7 +334,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor14": {
+    "BDS_ColoristicsTag_Floor14": {
         "description": """
         Коллористическая марка.
         """,
@@ -345,7 +345,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor15": {
+    "BDS_ColoristicsTag_Floor15": {
         "description": """
         Коллористическая марка.
         """,
@@ -356,7 +356,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor16": {
+    "BDS_ColoristicsTag_Floor16": {
         "description": """
         Коллористическая марка.
         """,
@@ -367,7 +367,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor17": {
+    "BDS_ColoristicsTag_Floor17": {
         "description": """
         Коллористическая марка.
         """,
@@ -378,7 +378,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor18": {
+    "BDS_ColoristicsTag_Floor18": {
         "description": """
         Коллористическая марка.
         """,
@@ -389,7 +389,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor19": {
+    "BDS_ColoristicsTag_Floor19": {
         "description": """
         Коллористическая марка.
         """,
@@ -400,7 +400,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor20": {
+    "BDS_ColoristicsTag_Floor20": {
         "description": """
         Коллористическая марка.
         """,
@@ -411,7 +411,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor21": {
+    "BDS_ColoristicsTag_Floor21": {
         "description": """
         Коллористическая марка.
         """,
@@ -422,7 +422,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor22": {
+    "BDS_ColoristicsTag_Floor22": {
         "description": """
         Коллористическая марка.
         """,
@@ -433,7 +433,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor23": {
+    "BDS_ColoristicsTag_Floor23": {
         "description": """
         Коллористическая марка.
         """,
@@ -444,7 +444,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor24": {
+    "BDS_ColoristicsTag_Floor24": {
         "description": """
         Коллористическая марка.
         """,
@@ -455,7 +455,7 @@ project_parameters = {
         "categoryes": panel_category,
         "group": BuiltInParameterGroup.PG_DATA
     },
-    "BDS_СoloristicsTag_Floor25": {
+    "BDS_ColoristicsTag_Floor25": {
         "description": """
         Коллористическая марка.
         """,
@@ -475,6 +475,22 @@ project_parameters = {
         "change_in_group": True,
         "in_family": False,
         "categoryes": panel_category + window_category + connection_category,
+        "group": BuiltInParameterGroup.PG_DATA
+    },
+    "BDS_Modifying": {
+        "description": """
+        Здесь указываются все модификаторы панели.
+        Консоли, окна, торцы итд
+        Запись производится в строчку.
+        Разделитель пар |
+
+        Разделитель ключа и значения :
+        """,
+        "type": "Text",
+        "is_type": False,
+        "change_in_group": True,
+        "in_family": False,
+        "categoryes": panel_category + window_category,
         "group": BuiltInParameterGroup.PG_DATA
     }
 }

@@ -51,9 +51,15 @@ class Precast_window(Precast_component, Precast_window_validate, Precast_json_te
         else:
             echo(self.error_message)
 
+    @property
+    def window_type(self):
+        "Тип оконного проема."
+        if not hasattr(self, "_window_type"):
+            point = self.make_xyz(self.make_real_point())
+            self._window_type = "Window" if point["z"] >= 400 else "Balcony"
+        return self._window_type
+
     def prepare_json(self, json_par):
-        # echo(json_par)
-        point = self.make_xyz(self.make_real_point())
         obj = json.loads(json_par)
         gen_obj = {
             "point": {
@@ -61,17 +67,16 @@ class Precast_window(Precast_component, Precast_window_validate, Precast_json_te
                 "y": 0,
                 "z": 0
             },
-            "type": "Window" if point["z"] >= 400 else "Balcony",
+            "type": self.window_type,
             "solids": obj,
             "length": 0
         }
         return json.dumps(gen_obj)
 
     def to_old_format(self):
-        point = self.make_xyz(self.make_real_point())
         old_window = {
             "point": point,
-            "type": "Window" if point["z"] >= 300 else "Balcony",
+            "type": self.window_type,
             "solids": [],
             "lispWinId": None,
             "lispProfName": None

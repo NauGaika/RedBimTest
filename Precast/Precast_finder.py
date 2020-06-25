@@ -2,12 +2,13 @@
 from .Panel import Precast_panel
 from common_scripts import echo
 from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, FamilyInstance
+from Autodesk.Revit.DB import AssemblyInstance
 
 
 class Precast_finder(object):
     "Поиск элементов относящихся к сборняку."
     panel_prefix = "215"
-    panel_prefix_2 = "216"
+    panel_prefix_container = "216"
     panel_parametrical_prefix = "214"
 
     @property
@@ -24,7 +25,8 @@ class Precast_finder(object):
         Если является эеземпляром семейства, не системное.
         Идем дальше.
         Проверяем является ли семейство геометрическое:
-        Должен быть префикс 215 или 216
+        Должен быть префикс 215
+        216 префикс у контейнеров
 
         Проверяем является ли семейство параметрическим.
         Префикс 214
@@ -40,24 +42,28 @@ class Precast_finder(object):
         """
         if not hasattr(self, "_panels"):
             self._panels = []
-            if not self.uidoc.Selection.GetElementIds().Count:
+            sel_id = self.uidoc.Selection.GetElementIds()
+            if not sel_id.Count:
                 wall_panels = FilteredElementCollector(self.doc).OfCategory(
-                    BuiltInCategory.OST_Walls).WhereElementIsNotElementType()
-                wall_panels = wall_panels.UnitonWith(FilteredElementCollector(
+                    BuiltInCategory.OST_Walls).WhereElementIsElementType()
+                wall_panels.UnionWith(FilteredElementCollector(
                     self.doc).OfCategory(BuiltInCategory.OST_Columns).WhereElementIsNotElementType())
                 wall_panels = wall_panels.ToElements()
             else:
-                wall_panels = [self.doc.GetElement(
+                sel_elements = [self.doc.GetElement(
                     i) for i in self.uidoc.Selection.GetElementIds()]
-                sub_walls = [self.doc.GetElement(
-                    i) for j in wall_panels for i in j.GetSubComponentIds()]
-                wall_panels = list(wall_panels) + list(sub_walls)
+                wall_panels = []
+                for i in sel_elements:
+                    if isinstance(i, AssemblyInstance):
+                        wall_panels += [self.doc.GetElement(j) for j in i.GetMemberIds()]
+                    else:
+                        wall_panels.append(i)
+                        wall_panels += [self.doc.GetElement(k) for j in wall_panels for k in j.GetSubComponentIds()]
             for i in wall_panels:
                 if isinstance(i, FamilyInstance):
                     geometrical = i.Symbol.Family.Name[:len(
                         self.panel_prefix)] == self.panel_prefix
-                    geometrical = geometrical or (i.Symbol.Family.Name[:len(
-                        self.panel_parametrical_prefix)] == self.panel_prefix_2)
+
                     parametrical = i.Symbol.Family.Name[:len(
                         self.panel_parametrical_prefix)] == self.panel_parametrical_prefix
                     if geometrical or parametrical:

@@ -7,7 +7,8 @@ from clr import StrongBox
 from math import pi
 from Autodesk.Revit.DB import FilteredElementCollector, Outline, FamilyInstance, BuiltInCategory
 from Autodesk.Revit.DB import Line, XYZ, CurveLoop, SolidCurveIntersectionOptions, SetComparisonResult, IntersectionResultArray
-from Autodesk.Revit.DB import BooleanOperationsUtils, BooleanOperationsType
+from Autodesk.Revit.DB import BooleanOperationsUtils, BooleanOperationsType, BuiltInParameter
+from Autodesk.Revit.DB import AssemblyInstance, ElementId, AssemblyViewUtils
 
 from common_scripts import echo, RB_Parameter_mixin
 from Precast.Common import Precast_component
@@ -16,16 +17,23 @@ from .Precast_panel_finder import Precast_panel_finder
 from .Precast_panel_analys_geometry import Precast_panel_analys_geometry
 from .Precast_panel_json import Precast_panel_json
 from .Precast_panel_validate import Precast_panel_validate
+from .Precast_panel_indastry import Precast_panel_indastry
 from Precast.Common.Precast_validator import Precast_validator
+from System.Collections.Generic import List
 
 
-class Precast_panel(Precast_component, Precast_panel_validate, Precast_panel_finder, Precast_panel_analys_geometry, Precast_panel_json):
+class Precast_panel(Precast_component,
+                    Precast_panel_validate,
+                    Precast_panel_finder,
+                    Precast_panel_analys_geometry,
+                    Precast_panel_json,
+                    Precast_panel_indastry):
     "Сборные панели."
 
     window_categorys = []
 
     # Префиксы которые используются
-    windows_prefix = "216"
+    windows_prefix = "221"
     unit_prefix = "219"
     holes_prefix = "232"
     # Марка типа элемента
@@ -77,23 +85,28 @@ class Precast_panel(Precast_component, Precast_panel_validate, Precast_panel_fin
         ]
         try:
             if self.parameter_is_exists(all_panel_parameters):
-                self.series_param = self.get_param(
-                    self.series_parameter_name).AsString()
-                self.mark_prefix_param = self.get_param(
-                    self.mark_prefix_parameter_name).AsString()
+                self.series_param = self[self.series_parameter_name]
+                self.mark_prefix_param = self[self.mark_prefix_parameter_name]
+                # Костыль, который меняет тройку на букву З
                 if self.mark_prefix_param:
                     self.mark_prefix_param = self.mark_prefix_param.replace(
                         "ЗНС", "3НС")
-                self.facade_type_param = self.get_param(
-                    self.facade_type_parameter_name).AsString()
-                self.mark_sub_prefix_param = self.get_param(
-                    self.mark_sub_prefix_parameter_name).AsString()
-                self.construction_type_param = self.get_param(
-                    self.construction_type_parameter_name).AsString()
+                self.facade_type_param = self[self.facade_type_parameter_name] if self[self.facade_type_parameter_name] else ""
+                self.mark_sub_prefix_param = self[self.mark_sub_prefix_parameter_name] if self[self.mark_sub_prefix_parameter_name] else ""
+                self.construction_type_param = self[self.construction_type_parameter_name] if self[self.mark_sub_prefix_parameter_name] else ""
+                if not self.facade_type_param:
+                    echo("Не указан FacadeType")
+                if not self.mark_sub_prefix_param:
+                    echo("Не указан SubPrefix")
+                if not self.construction_type_param:
+                    echo("Не указан ConstructionType")
                 if self.analys_geometry and self.geometrical:
+                    self.disassemble()
                     self.make_analys_geometry()
                     self.set_windows_to_panel()
                     self.add_ifc_parameter()
+                    self.add_indastry_parameter()
+                    # self.assambly = self.make_assambly()
             else:
                 echo(
                     "Ошибки в получении параметров у панели {} {}".format(self, sys.exc_info()[1]))
@@ -273,5 +286,30 @@ class Precast_panel(Precast_component, Precast_panel_validate, Precast_panel_fin
             }
             obj = json.dumps(obj, sort_keys=True, indent=4, ensure_ascii=False)
             elem["IFC_Export"] = obj
-        # self.get_param("IFC_Export").Set(self.element)
-        # echo(self.units)
+
+    def make_assambly(self):
+        """
+        Создать сборку из панели и всех ее компонентов.
+        """
+        cat = self.doc.Settings.Categories.get_Item(BuiltInCategory.OST_Walls).Id
+        els = List[ElementId]()
+        els.Add(self.element.Id)
+        for i in self.windows:
+            els.Add(i.element.Id)
+            # echo(i)
+        for i in self.embedded_parts:
+            els.Add(i.element.Id)
+        assambly = AssemblyInstance.Create(self.doc, els, cat)
+        view = AssemblyViewUtils.Create3DOrthographic(self.doc, assambly.Id)
+        view.get_Parameter(BuiltInParameter.MODEL_GRAPHICS_STYLE).Set(4)
+        return assambly
+
+    @property
+    def assembly(self):
+        if self.element.AssemblyInstanceId != ElementId.InvalidElementId:
+            return self.doc.GetElement(self.element.AssemblyInstanceId)
+
+    def disassemble(self):
+        "Разобрать сборку, если элемент в сборке."
+        if self.assembly:
+            self.assembly.Disassemble()

@@ -17,7 +17,7 @@ class ParameterChecker(object):
         pb = self.doc.ParameterBindings
         for i in shared_par_file.Groups:
             for definition in i.Definitions:
-                if definition.Name in self.parameters.keys():
+                if definition.Name in self.parameters.keys() and not self.parameters[definition.Name]["in_family"]:
                     param = self.parameters[definition.Name]
                     doc_cats = [self.doc.Settings.Categories.get_Item(
                         i) for i in param["categoryes"]]

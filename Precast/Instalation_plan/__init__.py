@@ -99,7 +99,7 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
                     "direction": i.Curve.Direction,
                     "line": i.Curve,
                     "el": i,
-                    "global": i.LookupParameter("BDS_AxisGlobal").AsString()
+                    "global": i.LookupParameter("BDS_AxisGlobal").AsString() if i.LookupParameter("BDS_AxisGlobal") else ""
                 } for i in self._grids}
             # echo(self._grids)
         return self._grids
@@ -212,6 +212,14 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
         return result_obj
 
     def compare_position(self, element_1, element_2, tollerance=100):
+        """
+        Сравнение панелей по позициям.
+
+        Если позиции по X, Y и Z совпадают в пределах tollerance.
+        Они равны.
+
+        Сейчас отключена проверка по повороту и марке.
+        """
         # mark = element_1["mark"] == element_2["mark"]
         # if mark:
         # return True
@@ -225,6 +233,25 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
             return True
 
     def set_coloristic_tag(self, obj):
+        """
+        Устанавливает коллористические марки.
+
+        Открывает файл с закрытыми рабочими наборами.
+        Для этого создается конфиг open_opt
+
+        Проходим по всем документам и панелям, которые переданы в obj
+        Выгружаем связь.
+        Открываем документ.
+        Проверяем можно ли вносить изменения в документ.
+        Пробуем внести изменения.
+        Проходим по всем панелям и уровням.
+        Получаем в документе связи панель по ID.
+        Проходим по всем уровням. 
+        Для каждой колористик Tag устанавливаем марку по уровню.
+        Если файл общий. Синхронизироваться.
+        Если файл не общий - просто сохранить.
+        В противном случае закрыть документ
+        """
         workset_config_option = WorksetConfigurationOption.CloseAllWorksets
         workset_config = WorksetConfiguration(workset_config_option)
         open_opt = OpenOptions()
@@ -237,27 +264,29 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
             rvt_type = self.rvt_docs[doc]
             rvt_type.Unload(None)
             cur_doc = app.OpenDocumentFile(m_p, open_opt)
-            try:
-                with Transaction(cur_doc, "Вносим изменения") as t:
-                    t.Start()
-                    for panel, levels in panels.items():
-                        panel = cur_doc.GetElement(ElementId(panel.Id))
-                        for level, mark in levels.items():
-                            level = level if len(level) > 1 else "0" + level
-                            panel.LookupParameter(
-                                "BDS_СoloristicsTag_Floor" + level).Set(mark)
-                    t.Commit()
-                twc_opts = TransactWithCentralOptions()
-                swc_opts = SynchronizeWithCentralOptions()
-                swc_opts.SetRelinquishOptions(RelinquishOptions(True))
-                swc_opts.Comment = "Атоматическая синхронизация КЖС"
-                cur_doc.SynchronizeWithCentral(twc_opts, swc_opts)
-                cur_doc.Close(True)
-            except:
-                echo(sys.exc_info()[1])
+            if not cur_doc.IsReadOnly:
+                try:
+                    with Transaction(cur_doc, "Вносим изменения") as t:
+                        t.Start()
+                        for panel, levels in panels.items():
+                            panel = cur_doc.GetElement(ElementId(panel.Id))
+                            for level, mark in levels.items():
+                                level = level if len(level) > 1 else "0" + level
+                                panel.LookupParameter(
+                                    "BDS_ColoristicsTag_Floor" + level).Set(mark)
+                        t.Commit()
+                    if cur_doc.IsWorkshared:
+                        twc_opts = TransactWithCentralOptions()
+                        swc_opts = SynchronizeWithCentralOptions()
+                        swc_opts.SetRelinquishOptions(RelinquishOptions(True))
+                        swc_opts.Comment = "Атоматическая синхронизация КЖС"
+                        cur_doc.SynchronizeWithCentral(twc_opts, swc_opts)
+                    cur_doc.Close(True)
+                except:
+                    echo(sys.exc_info()[1])
+                    cur_doc.Close(False)
+            else:
+                echo("Файл {} доступен только для чтения".format(title))
                 cur_doc.Close(False)
             rvt_type.Load()
             echo("Обработали связь {}".format(title))
-
-    # def check_all_panels(self):
-

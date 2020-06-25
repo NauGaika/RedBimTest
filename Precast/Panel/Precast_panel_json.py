@@ -32,7 +32,8 @@ class Precast_panel_json(object):
 
             for i in self.holes:
                 res_obj.append(i.define_json())
-
+            # echo(self.mark_prefix_param)
+            # self.facade_type_param = self.facade_type_param if self.facade_type_param else ""
             res_obj = {
                 "series": self.series_param,
                 "markPrefix": self.mark_prefix_param + self.facade_type_param,

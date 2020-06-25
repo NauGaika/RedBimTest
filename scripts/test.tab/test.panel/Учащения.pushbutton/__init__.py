@@ -1,110 +1,185 @@
 import re
-from System.Collections.Generic import List
+
+from Autodesk.Revit.DB import BuiltInCategory, BuiltInParameter, Transaction,\
+    FilteredElementCollector, ElementId, RevitLinkInstance, FamilyInstance,\
+    ElementMulticategoryFilter, ElementCategoryFilter, Options, ViewDetailLevel,\
+    Solid, ElementIntersectsSolidFilter, GeometryInstance
 from math import pi, ceil
-from Autodesk.Revit.DB import BuiltInCategory, BuiltInParameter, Transaction, FilteredElementCollector, ViewSheet, ElementId, RevitLinkInstance, ProjectLocation, Line, ElementTransformUtils,XYZ
-from Autodesk.Revit.UI import ExternalEvent, IExternalEventHandler
-
-from Autodesk.Revit.DB.Structure import Rebar, RebarHookOrientation, RebarHookType, RebarStyle
-from common_scripts.get_elems.RB_selections import RB_selections
-
-from Autodesk.Revit.UI.Selection import ObjectType
-from Autodesk.Revit.Exceptions import OperationCanceledException
-from common_scripts.RB_Scripts.RB_Rebar import RB_Rebar
-
+from System.Collections.Generic import List
 
 doc = __revit__.ActiveUIDocument.Document
 
-selection = [doc.GetElement(elId) for elId
-             in __revit__.ActiveUIDocument.Selection.GetElementIds()]
 
-FORM.Start(3)
+class Captures(object):
+    opt_1 = Options()
+    opt_1.DetailLevel = ViewDetailLevel.Medium
+    opt_1.IncludeNonVisibleObjects = True
+    opt_2 = Options()
+    opt_2.DetailLevel = ViewDetailLevel.Medium
 
-left_step = FORM.GetLines(1).add_textbox('Шаг учащения слева', '50')
-FORM.GetLines(1).add_label('Шаг учащения слева')
-left_step.Height=24
+    def __init__(self, doc, parent=None, transforms=None):
+        """
+        Начало параметризации.
+        Параметрами передаются 
+        doc
+        1. Получить арматуру в текущем файле.
+        2. Распределить арматуру по типам:
+            - Системная
+            - IFC
+        3. Получить все хосты формообразующие текущего докоумента
+        4. Найти родителей арматуры
+        . Найти либ документы
+        . По разнному обработать арматуру на поиск хоста
+        {
+            doc: transform
+        }
+        """
 
-left_count = FORM.GetLines(1).add_textbox('Количество стержней учащения слева', '5')
-FORM.GetLines(1).add_label('Количество стержней учащения слева')
-left_count.Height=24
+        self.transforms = transforms
+        self.parent = parent
+        self.doc = doc
+        echo("Начинаем работать с {}".format(self))
+        self.rebar_system, self.rebar_ifc = self.find_all_rebar()
+        echo("Получили арматурные стержни и разделили на IFC {} штук и системную {} штук".format(len(self.rebar_ifc), len(self.rebar_system)))
+        self.hosts = self.get_capture_forms()
+        echo("Получили формы для арматуры в  количестве {}".format(len(self.hosts)))
+        self.find_rebar_host_system(self.rebar_system)
+        self.find_rebar_host_ifc(self.rebar_ifc)
+        echo("Отработал поиск хостов")
+        # self.lib_documents = self.get_instance_document()
+        # self.parametrizetion_lib()
 
-left_increase = FORM.GetLines(1).add_checked_list_box('Учащение слева', [('Да', True)])
-FORM.GetLines(1).add_label('Добавить учащение слева')
-left_increase.Height=24
+    def __repr__(self):
+        if self.doc:
+            return self.doc.Title
+        return str(self.doc)
 
-right_step = FORM.GetLines(2).add_textbox('Шаг учащения справа', '50')
-FORM.GetLines(2).add_label('Шаг учащения справа')
-right_step.Height=24
+    def get_instance_document(self):
+        """
+        Находим все экзмепляры связей.
 
-right_count = FORM.GetLines(2).add_textbox('Количество стержней учащения справа', '5')
-FORM.GetLines(2).add_label('Количество стержней учащения справа')
-right_count.Height=24
+        Запихиваем в documents с их трансформатцией
+        Сколько трансформаций. Столько и либов.
+        """
+        documents = {}
+        els = FilteredElementCollector(self.doc).\
+            OfClass(RevitLinkInstance).ToElements()
+        for i in els:
+            l_doc = i.GetLinkDocument()
+            trans = i.GetTotalTransform()
+            if l_doc not in documents.keys():
+                documents[l_doc] = set()
+            documents[l_doc].add(trans)
+        return documents
 
-right_increase = FORM.GetLines(2).add_checked_list_box('Учащение справа', [('Да', True)])
-FORM.GetLines(2).add_label('Добавить учащение справа')
-right_increase.Height=24
+    def parametrizetion_lib(self):
+        for key, i in self.lib_documents.items():
+            if key:
+                self.__class__(key, parent=self, transforms=i)
 
-but_create = FORM.GetLines(3).add_button('Разделить')
-but_cancel = FORM.GetLines(3).add_button('Отмена')
+    def find_all_rebar(self):
+        """
+        Поиск арматуры.
 
-FORM.calculate_size()
+        Ищем всю арматуру и разделяем ее
+        на IFC и
+        Системную
+        """
+        system_rebar = set()
+        ifc_rebar = set()
+        rebars = FilteredElementCollector(self.doc).\
+            OfCategory(BuiltInCategory.OST_Rebar).\
+            WhereElementIsNotElementType().ToElements()
+        for i in rebars:
+            if isinstance(i, FamilyInstance):
+                ifc_rebar.add(i)
+            else:
+                system_rebar.add(i)
+        return system_rebar, ifc_rebar
 
-class execute_rebar_set(IExternalEventHandler):
-    def Execute(self, app):
-        t = Transaction(doc, 'Добавить учащение')
-        t.Start()
-        start_rebar = RB_Rebar(selection[0])
-        start_rebar_count = int(left_count.GetValue())
-        end_rebar_count = int(right_count.GetValue())
-        start_step = to_feet(int(left_step.GetValue()))
-        end_step = to_feet(int(right_step.GetValue()))
-        path_length =  start_rebar.ArrayLength
-        normale = 	start_rebar.Normal
-        start_space = start_rebar.rebar.MaxSpacing
-        start_rebar_count
-        translate_vector = normale
-        start_rebar_left = True
-        start_rebar_right = True
-        left_space = 0
-        right_space = 0
-        rebars = List[ElementId]()
-        if left_increase.GetValue()['Да']:
-            left_space = (start_rebar_count-1)*start_step
-            left_rebar = start_rebar.copy_by_normal_length(XYZ(0, 0, 0))
-            left_rebar.SetAsNumberWithSpacing(start_rebar_count, start_step)
-            rebars.Add(left_rebar.rebar.Id)
-        if right_increase.GetValue()['Да']:
-            right_space = (end_rebar_count-1)*end_step
-            right_rebar = start_rebar.copy_by_normal_length(normale*(path_length-right_space))
-            right_rebar.SetAsNumberWithSpacing(end_rebar_count, end_step)
-            rebars.Add(right_rebar.rebar.Id)
+    def get_capture_forms(self):
+        """
+        Получаем все возможные формообразующие в текущем документе.
+        """
+        els = FilteredElementCollector(self.doc).WhereElementIsNotElementType().OfCategory(BuiltInCategory.OST_Mass).ToElements()
+        return sorted(els, key=lambda x: int(x.LookupParameter("Захватка").AsString()))
 
-        if left_increase.GetValue()['Да'] or right_increase.GetValue()['Да']:
-            biv = path_length - right_space - left_space
-            reb_count = ceil(biv / start_space)
-            biv = biv - (reb_count-1) * start_space
-            if left_increase.GetValue()['Да'] and right_increase.GetValue()['Да']:
-                biv = biv/2
-            if not left_increase.GetValue()['Да']:
-                biv = 0
-            # echo(to_mm(biv))
-            rebars.Add(start_rebar.rebar.Id)
-            __revit__.ActiveUIDocument.Selection.SetElementIds(rebars)
-            start_rebar.translate(normale*(left_space + biv))
-            start_rebar.SetAsNumberWithSpacing(reb_count, start_space, first=True, last=True)
+    def select(self, elements):
+        elements = List[ElementId]([i.Id for i in elements])
+        __revit__.ActiveUIDocument.Selection.SetElementIds(elements)
 
-        t.Commit()
-        FORM.Close()
+    def find_rebar_host_system(self, elements, parent=None, transforms=None):
+        """
+        Находим хосты системной арматуры.
+        """
+        rebar_without_hosts = set()
+        for el in elements:
+            host_is_found = False
+            cur_line = next(iter(el.Geometry[self.opt_1]))
+            transform_host = {}
+            for host in self.hosts:
+                if host_is_found:
+                    break
+                for host_solid in self.get_solids(host, opt=self.opt_2):
+                    if isinstance(host_solid, Solid):
+                        if transforms is not None:
+                            for transform in transforms:
+                                trans_line = cur_line.CreateTransformed(transform)
+                                if host_solid.IntersectWithCurve(trans_line, None).SegmentCount:
+                                    echo("У системной арматуры {} найдена захватка в родителе {}".format(el.Id, host.Id))
+                                    transform_host[transform] = host.Id
+                        else:
+                            # echo("Ищем хост")
+                            if host_solid.IntersectWithCurve(cur_line, None).SegmentCount:
+                                echo("У системной арматуры {} найден захватка {}".format(el.Id, host.Id))
+                                el.LookupParameter("Захватка").Set(host.LookupParameter("Захватка").AsString())
+                                host_is_found = True
+            if not host_is_found:
+                rebar_without_hosts.add(el)
+                echo("Для системной арматуры {} не найдена захватка".format(el.Id))
+        if self.parent and rebar_without_hosts:
+            echo("Ищем захватку в родителе")
+            self.parent.find_rebar_host_system(rebar_without_hosts, transforms=self.transforms)
 
-    def GetName(self):
-        return 'New name'
+    def find_rebar_host_ifc(self, elements):
+
+        for el in elements:
+            all_reb_solids = self.get_solids(el)
+            host_is_found = False
+            if all_reb_solids:
+                first_solid = next(iter(all_reb_solids))
+                line = next(iter(first_solid.Edges)).AsCurve()
+                for host in self.hosts:
+                    if host_is_found:
+                        break
+                    for host_solid in self.get_solids(host):
+                        if isinstance(host_solid, Solid):
+                            if host_solid.IntersectWithCurve(line, None).SegmentCount:
+                                echo("У IFC арматуры {} найден хост {}".format(el.Id, host.Id))
+                                el.LookupParameter("Захватка").Set(host.LookupParameter("Захватка").AsString())
+                                host_is_found = True
+                if not host_is_found:
+                    pass
+                    echo("Для IFC арматуры {} не найден host".format(el.Id))
+            else:
+                # pass
+                echo("Не найдено геометрии для IFC {}".format(self))
+
+    def get_solids(self, el, opt=None):
+        opt = opt if opt is not None else self.opt_1
+        res = []
+        for geom in el.Geometry[opt]:
+            if isinstance(geom, GeometryInstance):
+                res += [i for i in geom.GetInstanceGeometry() if isinstance(i, Solid) and i.Volume > 0]
+            elif isinstance(geom, Solid) and geom.Volume > 0:
+                res.append(geom)
+        return res
 
 
-def test():
-    FORM.exEvent.Raise()
 
-handler = execute_rebar_set()
-exEvent = ExternalEvent.Create(handler)
 
-but_cancel.AddFunction(FORM.Close)
-but_create.AddFunction(test)
-FORM.Create(exEvent)
+
+with Transaction(doc, "Параметризация") as t:
+    t.Start()
+    Captures(doc)
+    t.Commit()

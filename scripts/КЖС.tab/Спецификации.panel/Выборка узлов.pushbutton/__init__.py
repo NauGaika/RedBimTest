@@ -27,17 +27,18 @@ for i in els:
     link_doc = i.GetLinkDocument()
     level = int(i.LookupParameter("BDS_LevelNumber").AsDouble())
     section = i.LookupParameter("BDS_Section").AsString()
-    all_docs.setdefault(link_doc, {})
-    all_docs[link_doc].setdefault(section, {})
-    all_docs[link_doc][section].setdefault(level, set())
-    all_sections_with_levels.setdefault(section, set())
-    all_sections_with_levels[section].add(level)
+    if section and link_doc:
+        if link_doc:
+            all_docs.setdefault(link_doc, {})
+            all_docs[link_doc].setdefault(section, {})
+            all_docs[link_doc][section].setdefault(level, set())
+            all_sections_with_levels.setdefault(section, set())
+            all_sections_with_levels[section].add(level)
 
 all_sections = list(all_sections_with_levels.keys())
 for i in all_sections_with_levels.keys():
     all_sections_with_levels[i] = list(all_sections_with_levels[i])
     all_sections_with_levels[i].sort()
-
 # echo(all_docs)
 tags = {}
 for link_doc, sections in all_docs.items():
@@ -52,7 +53,7 @@ for link_doc, sections in all_docs.items():
             if val == 7:
                 par = get_parameter(generic_model, "Precast_GeneralJoint")
                 par = par if par else get_parameter(generic_model, "Precast_GeneralJoin")
-                if par and par.AsInteger():
+                if par is None or par.AsInteger():
                     mark_name = get_parameter(generic_model, "BDS_Tag")
                     mark_name = mark_name.AsString() if mark_name else "Н/О"
                     tags.setdefault(mark_name, {})
@@ -117,11 +118,13 @@ def create_head(view, tags, name):
 
         start = 3
         # echo(json.dumps(tags))
-        for tag, sections in tags.items():
+        all_keys = [str(i) for i in sorted([int(i) for i in tags.keys()])]
+        for tag in all_keys:
+            sections = tags[tag]
             hor = 1
             start += 1
             sched.set_row_val(hor, start, tag)
-            hor+= 1
+            hor += 1
             gen_sum = 0
             for section in all_sections_keys:
                 levels = all_sections_with_levels[section]
@@ -136,6 +139,8 @@ def create_head(view, tags, name):
                     hor += 1
                 sched.set_row_val(hor, start, sum_)
                 gen_sum += sum_
+                hor += 1
+            hor -= 1
             hor += 1
             sched.set_row_val(hor, start, gen_sum)
     else:

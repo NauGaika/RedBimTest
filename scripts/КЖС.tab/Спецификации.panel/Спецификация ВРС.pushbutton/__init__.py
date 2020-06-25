@@ -1,8 +1,10 @@
 from Autodesk.Revit.DB import Transaction,\
-    FilteredElementCollector, BuiltInCategory, ElementId
+    FilteredElementCollector, BuiltInCategory, ElementId,\
+    RevitLinkInstance
 from Autodesk.Revit.DB import ParameterType
 from common_scripts.RB_Scheduled import RB_Scheduled
 from common_scripts import echo
+import re
 
 from System.Collections.Generic import List
 
@@ -29,7 +31,8 @@ par_names = {
     "МатериалОбъем": ("Объем", False),
     "МатериалПлощадь": ("Площадь", False),
     "МатериалПлотность": ("BDS_Density", True),
-    "ГруппаВРС": ("Арм.ГруппаВРС", False)
+    "ГруппаВРС": ("Арм.ГруппаВРС", False),
+    "КлассЧисло_2": ("Precast_SteelFormula", False)
 }
 
 csv_path = os.path.join(file_path, "summon.csv")
@@ -41,20 +44,26 @@ class StructuralFraming(object):
         "rows": set()
     }
 
-    def __init__(self, el, csv_dict):
+    def __init__(self, el, csv_dict, count=1):
         self.error = False
         # echo(self)
         self.file_path = file_path
+        self.count = count
         self.csv = csv_dict
         self.el = el
         # echo(self["МатериалИмя"])
         self.name, self.gost, self.weight = self.get_parameters_from_csv()
         if self.name and self.gost:
-            self.mass = self.calculate_mass()
-            # echo(self.name, self.mass)
-            self.add_to_summary_structure()
+            if self.element_type != 5:
+                self.mass = self.calculate_mass()
+                # echo(self.name, self.mass)
+                self.add_to_summary_structure()
         else:
-            self.error = "{} отсутствует в сортаменте Арм.КлассЧисло {}".format(self, self[par_names["КлассЧисло"]])
+            self.error = "{} отсутствует в сортаменте Арм.КлассЧисло {}".format(
+                self, self.class_number)
+
+    def doc_name(self):
+        return self.el.Document.Title
 
     def __repr__(self):
         return "{} {} ".format(self.el.Symbol.Family.Name, self.el.Id)
@@ -63,6 +72,8 @@ class StructuralFraming(object):
         par = self.get_param(key)
         if par:
             if par.Definition.ParameterType == ParameterType.Number:
+                return par.AsDouble()
+            elif par.Definition.ParameterType == ParameterType.Currency:
                 return par.AsDouble()
             elif par.Definition.ParameterType == ParameterType.Text:
                 return par.AsString()
@@ -76,17 +87,68 @@ class StructuralFraming(object):
                 return par.AsDouble() * (304.8**3)
 
     def get_parameters_from_csv(self):
-        class_number = self[par_names["КлассЧисло"]]
+        self.class_number = self[par_names["КлассЧисло_2"]]
+        if self.class_number:
+            self.class_number = self.calculate_class_number(self.class_number)
+            # echo("КлассЧисло {} у {}".format(class_number, self))
+        else:
+            self.class_number = self[par_names["КлассЧисло"]]
+            # echo("{} Не найдено у {}".format(
+                # par_names["КлассЧисло_2"][0], self))
         gost = None
         weight = None
         name = None
         # echo(self.el.Name, class_number, type(class_number))
-        class_number = str(class_number) if str(class_number) in self.csv.keys() else str(int(class_number))
-        if class_number in self.csv.keys():
-            name = self.csv[class_number][0]
-            gost = self.csv[class_number][1]
-            weight = self.csv[class_number][2]
+        self.class_number = str(self.class_number) if str(
+            self.class_number) in self.csv.keys() else str(int(self.class_number))
+        if self.class_number in self.csv.keys():
+            name = self.csv[self.class_number][0]
+            gost = self.csv[self.class_number][1]
+            weight = self.csv[self.class_number][2]
         return name, gost, weight
+
+    @property
+    def element_type(self):
+        return self["BDS_ElementType"]
+    
+    def calculate_class_number(self, str_to_parse):
+        meta_templ_params = "([^A-Za-zА-Яа-я_][0-9\.]+[^A-Za-zА-Яа-я_])|(^[0-9\.]+[^A-Za-zА-Яа-я_])|([^A-Za-zА-Яа-я_][0-9\.]+$)|((\*)|(\-)|(\/)|(\+))|([А-Яа-яA-Za-z\._]+)"
+        meta_templ_params = re.compile(meta_templ_params)
+        params = [[j for j in i if j][0].strip()
+                  for i in meta_templ_params.findall(str_to_parse)]
+        multiple = []
+        for key, par in enumerate(params):
+            if par == "*" or par == "/":
+                multiple.append(
+                    (key - 1, key, key + 1, params[key-1], par, params[key+1]))
+        for i in multiple:
+            # echo(i)
+            if i[4] == "*":
+                res = self.get_param_or_float(
+                    i[3]) * self.get_param_or_float(i[5])
+            elif i[4] == "/":
+                res = self.get_param_or_float(
+                    i[3]) / self.get_param_or_float(i[5])
+            params[i[1]] = res
+            params[i[0]] = None
+            params[i[2]] = None
+        params = [i for i in params if i is not None]
+        result = 0
+        for key, i in enumerate(params):
+            if key == 0:
+                result = i
+            elif i == "+":
+                result += self.get_param_or_float(params[key+1])
+            elif i == "-":
+                result -= self.get_param_or_float(params[key+1])
+        return result
+
+    def get_param_or_float(self, par):
+        if isinstance(par, float):
+            return par
+        if par.replace(".", "").isdigit():
+            return float(par)
+        return self[par]
 
     def add_to_summary_structure(self):
         gs = self.summary_structure["elements"]
@@ -122,7 +184,14 @@ class StructuralFraming(object):
         name_dict[group_vrs] += self.mass
 
     def calculate_mass(self):
-        print("Подсчет массы")
+        """
+        Подсчет массы.
+
+        Считается по формулам описанным
+        https://docs.google.com/spreadsheets/d/1qB8FUkEdyUgw6qt5sLppX-QyvMNmKUa-83KUxZC5I0E/edit?usp=sharing
+
+        В случае ошибки выводит сообщение
+        """
         calc_type = self[par_names["Подсчет"]]
         mass = 0
         try:
@@ -152,12 +221,15 @@ class StructuralFraming(object):
                     mass = self["МатериалОбъем"] / 1000**3 * \
                         self["МатериалПлотность"]
         except:
-            echo("Ошибка в подсчете массы, {}".format(self)) 
+            echo("Ошибка в подсчете массы, {}".format(self))
         return mass
 
     def get_param(self, param_tuple):
         if isinstance(param_tuple, str):
-            param_tuple = par_names[param_tuple]
+            if param_tuple in par_names.keys():
+                param_tuple = par_names[param_tuple]
+            else:
+                param_tuple = param_tuple, False
         param, is_material = param_tuple
         el = self.el
         if not hasattr(self, "_all_parameters"):
@@ -178,11 +250,39 @@ class StructuralFraming(object):
 
 class ElementFinder(object):
     def __init__(self, __revit__, csv_path):
-        self.docs = [__revit__.ActiveUIDocument.Document]
+        """
+        Иниацилизация поисковика.
+
+        в self.docs все документы, в которых ищем каркас несущий.
+        в self.structural_framing все элементы каркаса несущего
+        """
+        self.__revit__ = __revit__
+        # echo(self.docs)
         self.csv_dict = self.open_csv(csv_path)
         self.structural_framing
+        # echo(len(self.structural_framing))
         self.csv_path = csv_path
         self.make_schedule(StructuralFraming.summary_structure)
+
+    @property
+    def docs(self):
+        """
+        Получаем все документы.
+
+        Получаем все экземпляры связей
+        Записываем их в словарь self._docs
+        Указываем их количество.
+        """
+        if not hasattr(self, "_docs"):
+            self._docs = {}
+            cur_doc = self.__revit__.ActiveUIDocument.Document
+            docs = FilteredElementCollector(cur_doc).OfClass(RevitLinkInstance).ToElements()
+            for doc in docs:
+                if doc.GetLinkDocument():
+                    g_doc = doc.GetLinkDocument()
+                    self._docs.setdefault(g_doc, 0)
+                    self._docs[g_doc] += 1
+        return self._docs
 
     def make_schedule(self, el_dict):
         """
@@ -260,28 +360,23 @@ class ElementFinder(object):
     @property
     def structural_framing(self):
         if not hasattr(self, "_structural_framing"):
+            eror_elements = []
             self._structural_framing = []
-            fec = None
-            for doc in self.docs:
-                cur_elements = FilteredElementCollector(doc).OfCategory(
+            for doc, count in self.docs.items():
+                fec = FilteredElementCollector(doc).OfCategory(
                     BuiltInCategory.OST_StructuralFraming).WhereElementIsNotElementType()
-                if fec is None:
-                    fec = cur_elements
-                else:
-                    fec.UnionWith(cur_elements)
-            eror_elements = List[ElementId]()
-            for el in fec.ToElements():
-                par = self.get_parameter(el, par_names["КлассЧисло"])
-                if par and par.AsDouble():
-                    new_el = StructuralFraming(el, self.csv_dict)
-                    if not new_el.error:
-                        self._structural_framing.append(new_el)
-                    else:
-                        eror_elements.Add(el.Id)
-                        echo(new_el.error)
-            if eror_elements.Count:
-                echo("Ошибочные элементы выделены в проекте.")
-                uidoc.Selection.SetElementIds(eror_elements)
+                for el in fec.ToElements():
+                    par = self.get_parameter(el, par_names["КлассЧисло"])
+                    if par and par.AsDouble():
+                        new_el = StructuralFraming(el, self.csv_dict, count=count)
+                        if not new_el.error:
+                            self._structural_framing.append(new_el)
+                        else:
+                            eror_elements.append(new_el)
+            if len(eror_elements):
+                echo("Ошибочные элементы в проекте в количестве {}.".format(len(eror_elements)))
+            for i in eror_elements:
+                echo(i.error, " ", i.doc_name())
         return self._structural_framing
 
     def get_parameter(self, element, parameter):

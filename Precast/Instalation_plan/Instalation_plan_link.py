@@ -57,7 +57,7 @@ class Instalation_plan_link(object):
                     cur_poition = transform.OfPoint(
                         position) - self.start_point
                     level_str = str(level) if int(level) > 9 else "0" + str(level)
-                    colorIndex = panel.get_param("BDS_СoloristicsTag_Floor" + level_str)
+                    colorIndex = panel.get_param("BDS_ColoristicsTag_Floor" + level_str)
                     colorIndex = colorIndex.AsString() if colorIndex else None
                     if to_old:
                         obj = {
@@ -99,9 +99,8 @@ class Instalation_plan_link(object):
     def crutch_of_position(self, panel):
         "Костыль пересчета позиции."
         position = panel.start_point
-        position -= panel.vect_abscis * (panel.get_param("BDS_Thickness").AsDouble(
-        ) / 304.8 - panel.get_param("Привяза к оси вдоль").AsDouble())
-        position += panel.vect_ordinat * panel.get_param("Привяза к оси_Верхний торец").AsDouble()
+        position -= panel.vect_abscis * (panel.get_param("BDS_Thickness").AsDouble() / 304.8)# - panel.get_param("Привяза к оси вдоль").AsDouble())
+        #position += panel.vect_ordinat * panel.get_param("Привяза к оси_Верхний торец").AsDouble()
         return position
 
     @classmethod

@@ -79,7 +79,7 @@ for link_doc, sections in all_docs.items():
                 for level in sections[section]:
                     level_str = str(level) if level > 9 else "0" + str(level)
                     # echo("BDS_СoloristicsTag_Floor" + level_str)
-                    coloristic_mark = panel.LookupParameter("BDS_СoloristicsTag_Floor" + level_str).AsString()
+                    coloristic_mark = panel.LookupParameter("BDS_ColoristicsTag_Floor" + level_str).AsString()
                     new_tag = tag
                     if coloristic_mark:
                         new_tag = "{} ({})".format(new_tag, coloristic_mark)

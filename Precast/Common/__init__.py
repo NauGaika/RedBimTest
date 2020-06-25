@@ -2,6 +2,7 @@
 from .Precast_validator import Precast_validator
 from .Precast_geometry import Precast_geometry
 from Autodesk.Revit.DB import ParameterType
+from common_scripts import echo
 
 
 class Precast_component(Precast_validator, Precast_geometry):
@@ -60,22 +61,18 @@ class Precast_component(Precast_validator, Precast_geometry):
         Метод получения параметров из семейства.
 
         По умолчанию берется параметр у текущего элемента.
-        Если передан параметр fam - берем этот параметр
-        у fam.
+
+        fam - нужно убрать.
         """
+        # echo(param)
         if not hasattr(self, "_all_parameters"):
             self._all_parameters = {}
-        if fam is None:
-            if param not in self._all_parameters.keys():
-                par = self.element.LookupParameter(param)
-                if not par:
-                    par = self.element.Symbol.LookupParameter(param)
-                self._all_parameters[param] = par
-            return self._all_parameters[param]
-        else:
-            par = fam.LookupParameter(param)
-            par = par.Symbol.LookupParameter(param if par is None else par)
-            return par
+        if param not in self._all_parameters.keys():
+            par = self.element.LookupParameter(param)
+            if not par:
+                par = self.element.Symbol.LookupParameter(param)
+            self._all_parameters[param] = par
+        return self._all_parameters[param]
 
     def __getitem__(self, key):
         """
