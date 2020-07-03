@@ -126,12 +126,12 @@ class Captures(object):
                             for transform in transforms:
                                 trans_line = cur_line.CreateTransformed(transform)
                                 if host_solid.IntersectWithCurve(trans_line, None).SegmentCount:
-                                    echo("У системной арматуры {} найдена захватка в родителе {}".format(el.Id, host.Id))
+                                    # echo("У системной арматуры {} найдена захватка в родителе {}".format(el.Id, host.Id))
                                     transform_host[transform] = host.Id
                         else:
                             # echo("Ищем хост")
                             if host_solid.IntersectWithCurve(cur_line, None).SegmentCount:
-                                echo("У системной арматуры {} найден захватка {}".format(el.Id, host.Id))
+                                # echo("У системной арматуры {} найдена захватка {}".format(el.Id, host.Id))
                                 el.LookupParameter("Захватка").Set(host.LookupParameter("Захватка").AsString())
                                 host_is_found = True
             if not host_is_found:
@@ -155,7 +155,7 @@ class Captures(object):
                     for host_solid in self.get_solids(host):
                         if isinstance(host_solid, Solid):
                             if host_solid.IntersectWithCurve(line, None).SegmentCount:
-                                echo("У IFC арматуры {} найден хост {}".format(el.Id, host.Id))
+                                # echo("У IFC арматуры {} найден хост {}".format(el.Id, host.Id))
                                 el.LookupParameter("Захватка").Set(host.LookupParameter("Захватка").AsString())
                                 host_is_found = True
                 if not host_is_found:

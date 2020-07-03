@@ -48,63 +48,70 @@ class Precast_panel_indastry(object):
         иначе - левое
 
         """
-        parameters = {}
-        parameters["Console"] = False
-        parameters["Loop"] = False
-        parameters["Teeth"] = False
-        parameters["TeethPart"] = False
-        parameters["TeethCut"] = False
-        parameters["EndLeft"] = self["BDS_LeftEndType"] == 1
-        parameters["EndRight"] = self["BDS_RightEndType"] == 1
-        parameters["Heat"] = True
-        windows_count = 0
-        balcony_count = 0
-        p = 0
-        for window in self.windows:
-            p += 1
-            if window.window_type == "Balcony":
-                balcony_count += 1
-                window["BDS_Balkony"] = 1
-            else:
-                window["BDS_Balkony"] = 0
-            if window.window_type == "Window":
-                windows_count += 1
-                window["BDS_Window"] = 1
-            else:
-                window["BDS_Window"] = 0
-            window["BDS_Door"] = 0
-            parameters["RDSLightHeight_" + str(p)] = window["BDS_RDSLightHeight"]
-            parameters["BDS_RDSLightLength_" + str(p)] = window["BDS_RDSLightLength"]
-
-            element = window.element
-            if window["Тип окна"] is not None:
-                if window["Тип окна"] == 0:
-                    window_type = "центр"
+        try:
+            parameters = {}
+            parameters["Console"] = False
+            parameters["Loop"] = False
+            parameters["Teeth"] = False
+            parameters["TeethPart"] = False
+            parameters["TeethCut"] = False
+            parameters["EndLeft"] = self["BDS_LeftEndType"] == 1
+            parameters["EndRight"] = self["BDS_RightEndType"] == 1
+            parameters["Heat"] = True
+            windows_count = 0
+            balcony_count = 0
+            p = 0
+            for window in self.windows:
+                p += 1
+                if window.window_type == "Balcony":
+                    balcony_count += 1
+                    window["BDS_Balkony"] = 1
+                    self["BDS_Balkony"] = 1
                 else:
-                    window_type = "угол"
-                    if element.GetTransform().BasisY.Z > 0 or element.GetTransform().BasisY.IsAlmostEqualTo(element.FacingOrientation):
-                        window_type += " правый"
-                    else:
-                        window_type += " левый"
-                    if window["Тип окна"] == 1:
-                        window_type += " загиб"
-                window["BDS_PositionType"] = window_type
-            else:
-                echo("{} Не обновлено либо не имеет параметр Тип окна".format(window))
+                    window["BDS_Balkony"] = 0
+                if window.window_type == "Window":
+                    windows_count += 1
+                    window["BDS_Window"] = 1
+                    self["BDS_Window"] = 1
+                else:
+                    window["BDS_Window"] = 0
+                if window.window_type == "Door":
+                    self["BDS_Door"] = 1
+                window["BDS_Door"] = 0
+                parameters["RDSLightHeight_" + str(p)] = window["BDS_RDSLightHeight"]
+                parameters["BDS_RDSLightLength_" + str(p)] = window["BDS_RDSLightLength"]
 
-        parameters["Window"] = windows_count
-        parameters["Balkony"] = balcony_count
-        parameters["Door"] = False
-        parameters["TechCut"] = False
-        parameters["StapleLeft120"] = False
-        parameters["StapleRight120"] = False
-        parameters["StapleLeft150"] = False
-        parameters["StapleLeft245"] = False
-        parameters["StapleRight245"] = False
-        parameters["StapleLeft275"] = False
-        parameters["StapleRight275"] = False
-        parameters["StapleTop"] = False
-        self.industry_parameter = parameters
+                element = window.element
+                if window["Тип окна"] is not None:
+                    if window["Тип окна"] == 0:
+                        window_type = "центр"
+                    else:
+                        window_type = "угол"
+                        if element.GetTransform().BasisY.Z > 0 or element.GetTransform().BasisY.IsAlmostEqualTo(element.FacingOrientation):
+                            window_type += " правый"
+                        else:
+                            window_type += " левый"
+                        if window["Тип окна"] == 1:
+                            window_type += " загиб"
+                    window["BDS_PositionType"] = window_type
+                else:
+                    echo("{} Не обновлено либо не имеет параметр Тип окна".format(window))
+
+            parameters["Window"] = windows_count
+            parameters["Balkony"] = balcony_count
+            parameters["Door"] = False
+            parameters["TechCut"] = False
+            parameters["StapleLeft120"] = False
+            parameters["StapleRight120"] = False
+            parameters["StapleLeft150"] = False
+            parameters["StapleLeft245"] = False
+            parameters["StapleRight245"] = False
+            parameters["StapleLeft275"] = False
+            parameters["StapleRight275"] = False
+            parameters["StapleTop"] = False
+            self.industry_parameter = parameters
+        except:
+            echo("{} не угодна индустрии".format(self))
 
     @property
     def industry_parameter(self):

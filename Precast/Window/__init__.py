@@ -74,6 +74,7 @@ class Precast_window(Precast_component, Precast_window_validate, Precast_json_te
         return json.dumps(gen_obj)
 
     def to_old_format(self):
+        point = self.make_xyz(self.make_real_point())
         old_window = {
             "point": point,
             "type": self.window_type,

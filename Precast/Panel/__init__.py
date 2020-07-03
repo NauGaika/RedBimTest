@@ -84,6 +84,7 @@ class Precast_panel(Precast_component,
             "JSON"
         ]
         try:
+            # echo(geometrical)
             if self.parameter_is_exists(all_panel_parameters):
                 self.series_param = self[self.series_parameter_name]
                 self.mark_prefix_param = self[self.mark_prefix_parameter_name]
@@ -94,11 +95,11 @@ class Precast_panel(Precast_component,
                 self.facade_type_param = self[self.facade_type_parameter_name] if self[self.facade_type_parameter_name] else ""
                 self.mark_sub_prefix_param = self[self.mark_sub_prefix_parameter_name] if self[self.mark_sub_prefix_parameter_name] else ""
                 self.construction_type_param = self[self.construction_type_parameter_name] if self[self.mark_sub_prefix_parameter_name] else ""
-                if not self.facade_type_param:
+                if not self.facade_type_param and geometrical:
                     echo("Не указан FacadeType")
-                if not self.mark_sub_prefix_param:
+                if not self.mark_sub_prefix_param and geometrical:
                     echo("Не указан SubPrefix")
-                if not self.construction_type_param:
+                if not self.construction_type_param and geometrical:
                     echo("Не указан ConstructionType")
                 if self.analys_geometry and self.geometrical:
                     self.disassemble()

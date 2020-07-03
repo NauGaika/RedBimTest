@@ -97,6 +97,8 @@ class Precast_component(Precast_validator, Precast_geometry):
                 return par.AsDouble() * (304.8**2)
             elif par.Definition.ParameterType == ParameterType.Volume:
                 return par.AsDouble() * (304.8**3)
+            elif par.Definition.ParameterType == ParameterType.Invalid:
+                return par.AsValueString()
 
     def __setitem__(self, key, val):
         """
