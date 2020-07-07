@@ -65,8 +65,8 @@ class Precast_panel_indastry(object):
                 p += 1
                 if window.window_type == "Balcony":
                     balcony_count += 1
-                    window["BDS_Balkony"] = 1
-                    self["BDS_Balkony"] = 1
+                    window["BDS_Balcony"] = 1
+                    self["BDS_Balcony"] = 1
                 else:
                     window["BDS_Balkony"] = 0
                 if window.window_type == "Window":
@@ -98,7 +98,7 @@ class Precast_panel_indastry(object):
                     echo("{} Не обновлено либо не имеет параметр Тип окна".format(window))
 
             parameters["Window"] = windows_count
-            parameters["Balkony"] = balcony_count
+            parameters["Balcony"] = balcony_count
             parameters["Door"] = False
             parameters["TechCut"] = False
             parameters["StapleLeft120"] = False
