@@ -85,7 +85,8 @@ class Precast_component(Precast_validator, Precast_geometry):
         """
         par = self.get_param(key)
         if par:
-            if par.Definition.ParameterType == ParameterType.Number:
+            if par.Definition.ParameterType == ParameterType.Number or\
+                    par.Definition.ParameterType == ParameterType.Currency:
                 return par.AsDouble()
             elif par.Definition.ParameterType == ParameterType.Text:
                 return par.AsString()

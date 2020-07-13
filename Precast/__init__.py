@@ -19,9 +19,16 @@ class Precast(Precast_finder):
     URI = 'vpp-map01'
     panel_server_path = "/v1/Panel/"
 
-    def __init__(self, __revit__, analys_geometry=True, create_new_panel=False, old_format_path=None, set_parameters=True):
+    def __init__(self,
+            __revit__,
+            analys_geometry=True,
+            create_new_panel=False,
+            old_format_path=None,
+            set_parameters=True,
+            to_old_format=True):
         "Создаем объект на основе документа проекта."
         self.uidoc = __revit__.ActiveUIDocument
+        self.is_make_old_format = to_old_format
         self.doc = self.uidoc.Document
         ParameterChecker(self.doc)
         self.analys_geometry = analys_geometry
@@ -101,8 +108,11 @@ class Precast(Precast_finder):
                             echo("Найдена существующая панель с маркой {} для элемента {}".format(
                                 i["value"]["mark"], j.Id))
                         # Для каждой вернувшейся панели создаем old_format. Для этого передаем вернувшиеся данные панели.
-                        if self.old_format_path:
-                            j.make_old_format(i, self.old_format_path)
+                        if self.old_format_path or self.is_make_old_format:
+                            j.make_old_format(
+                                i,
+                                self.old_format_path,
+                                )
         else:
             echo("Вернулся не массив ", result_str)
 

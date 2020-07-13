@@ -1,4 +1,5 @@
 import re
+import json
 from Autodesk.Revit.DB import Transaction, FilteredElementCollector, BuiltInCategory, ParameterType
 from Autodesk.Revit.DB.Structure import Rebar, RebarInSystem
 from common_scripts import echo
@@ -9,8 +10,9 @@ class RebarParametrization(object):
     all_rebars = []
     parameter_code = "BDS_ReinforcementCode"
 
-    def __init__(self, el):
+    def __init__(self, el, is_echo=False):
         "Создание экземпляр элемента параметризации."
+        self.is_echo = is_echo
         self.element = el
         if isinstance(el, Rebar) or isinstance(el, RebarInSystem):
             pass
@@ -24,8 +26,17 @@ class RebarParametrization(object):
                 new_val = self.calculate_symbol(i)
                 new_val = new_val if isinstance(new_val, str) else str(new_val)
                 par_code = par_code.replace(prev_val, new_val)
+            par_code = par_code.replace("'", '"')
+            try:
+                if self.is_echo:
+                    echo(json.loads(par_code))
+            except:
+                if self.is_echo:
+                    echo("Ошибка формирования json {}".format(self))
             self["BDS_ReinforcementSymbol"] = par_code
 
+    def __repr__(self):
+        return str(self.element.Id)
 
     def find_str_to_parse(self, str_to_parse):
         """
@@ -58,34 +69,40 @@ class RebarParametrization(object):
 
         Если всего один элемент - возвращаем его
         """
-        meta_templ_params = "([^A-Za-zА-Яа-я_][0-9\.]+[^A-Za-zА-Яа-я_])|(^[0-9\.]+[^A-Za-zА-Яа-я_])|([^A-Za-zА-Яа-я_][0-9\.]+$)|((\*)|(\-)|(\/)|(\+))|(\[[А-Яа-яA-Za-z\.\s_]+\])"
-        meta_templ_params = re.compile(meta_templ_params)
-        params = [[j for j in i if j][0].strip().lstrip("[").rstrip("]")
-                  for i in meta_templ_params.findall(str_to_parse)]
-        params = [(self[i] if self[i] else i) for i in params]
-        params = [(float(i) if isinstance(i, str) and i.replace(".", "").isnumeric() else i) for i in params]
-        multiple = []
-        for key, par in enumerate(params):
-            if par == "*" or par == "/":
-                multiple.append(
-                    (key - 1, key, key + 1, params[key-1], par, params[key+1]))
-        for i in multiple:
-            if i[4] == "*":
-                res = i[3] * i[5]
-            elif i[4] == "/":
-                res = i[3] / i[5]
-            params[i[1]] = res
-            params[i[0]] = None
-            params[i[2]] = None
-        params = [i for i in params if i is not None]
-        result = 0
-        for key, i in enumerate(params):
-            if key == 0:
-                result = i
-            elif i == "+":
-                result += params[key+1]
-            elif i == "-":
-                result -= params[key+1]
+        try:
+            meta_templ_params = "([^A-Za-zА-Яа-я_][0-9\.]+[^A-Za-zА-Яа-я_])|(^[0-9\.]+[^A-Za-zА-Яа-я_])|([^A-Za-zА-Яа-я_][0-9\.]+$)|((\*)|(\-)|(\/)|(\+))|(\[[А-Яа-яA-Za-z\.\s_]+\])"
+            meta_templ_params = re.compile(meta_templ_params)
+            params = [[j for j in i if j][0].strip().lstrip("[").rstrip("]")
+                      for i in meta_templ_params.findall(str_to_parse)]
+            params = [(self[i] if self[i] else i) for i in params]
+            params = [(float(i) if isinstance(i, str) and i.replace(".", "").isnumeric() else i) for i in params]
+            multiple = []
+            for key, par in enumerate(params):
+                if par == "*" or par == "/":
+                    multiple.append(
+                        (key - 1, key, key + 1, params[key-1], par, params[key+1]))
+            for i in multiple:
+                if i[4] == "*":
+                    res = i[3] * i[5]
+                elif i[4] == "/":
+                    res = i[3] / i[5]
+                params[i[1]] = res
+                params[i[0]] = None
+                params[i[2]] = None
+            params = [i for i in params if i is not None]
+            result = 0
+            for key, i in enumerate(params):
+                if key == 0:
+                    result = i
+                elif i == "+":
+                    result += params[key+1]
+                elif i == "-":
+                    result -= params[key+1]
+            result = round(result) 
+        except:
+            result = '"ошибка"'
+            if self.is_echo:
+                echo("Ошибка в формировании параметра в {}".format(self))
         return result
 
     @classmethod
@@ -105,7 +122,7 @@ class RebarParametrization(object):
         with Transaction(cls.doc, "Записать параметры арматуры") as t:
             t.Start()
             for el in els:
-                rr = cls(el)
+                rr = cls(el, is_echo=uidoc.Selection.GetElementIds().Count>0)
                 cls.all_rebars.append(rr)
             t.Commit()
 

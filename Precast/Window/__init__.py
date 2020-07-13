@@ -27,7 +27,8 @@ class Precast_window(Precast_component, Precast_window_validate, Precast_json_te
         # Это непонятно зачем. Нужно переделать get_parameter
         self.el_type = self.element.Symbol
         self.error_message = ""
-        self.parent.add_child(self)
+        if self.parent:
+            self.parent.add_child(self)
 
         
         if self.is_valid:
@@ -134,7 +135,7 @@ class Precast_window(Precast_component, Precast_window_validate, Precast_json_te
             vx = self.parent.vect_abscis
             vy = self.parent.vect_ordinat
             vz = self.parent.vect_applicat
-            t = self.parent.get_param("BDS_Thickness").AsDouble() / 304.8
+            t = self.parent["BDS_Thickness"] / 304.8
             point = self.start_point - t * vx - (self.width / 2) * vy
             point = self.parent.transform.Inverse.OfPoint(
                 point) - self.parent.ut_point

@@ -23,7 +23,7 @@ class Precast_geometry(object):
         self._union_solid = None
         super(Precast_geometry, self).__init__()
 
-    def get_solids(self, solids, res):
+    def get_solids(self, solids, res, transform=None):
         "Записываем солиды и записываем в res рекурсивно."
         if solids:
             for i in solids:

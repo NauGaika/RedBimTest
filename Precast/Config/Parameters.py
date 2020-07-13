@@ -2,10 +2,10 @@
 from Autodesk.Revit.DB import BuiltInCategory, BuiltInParameterGroup
 
 
-panel_category = [BuiltInCategory.OST_Walls, BuiltInCategory.OST_Columns]
-window_category = [BuiltInCategory.OST_Windows, BuiltInCategory.OST_GenericModel]
-connection_category = [BuiltInCategory.OST_StructConnections]
-material_category = [BuiltInCategory.OST_Materials]
+panel_category = [BuiltInCategory.OST_Walls, BuiltInCategory.OST_Columns] # Категории панелей
+window_category = [BuiltInCategory.OST_Windows, BuiltInCategory.OST_GenericModel] # Категории окон
+connection_category = [BuiltInCategory.OST_StructConnections] # Категории закладных
+material_category = [BuiltInCategory.OST_Materials] # Категории материалов
 
 
 project_prefixes = {
@@ -490,6 +490,18 @@ project_parameters = {
         "is_type": False,
         "change_in_group": True,
         "in_family": False,
+        "categoryes": panel_category + window_category,
+        "group": BuiltInParameterGroup.PG_DATA
+    },
+    "BDS_Window": {
+        "description": """
+        Наличие в панели окна.
+        Заполняется с помощью плагина.
+        """,
+        "type": "Bool",
+        "is_type": False,
+        "change_in_group": True,
+        "in_family": True,
         "categoryes": panel_category + window_category,
         "group": BuiltInParameterGroup.PG_DATA
     }

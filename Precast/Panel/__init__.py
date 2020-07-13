@@ -2,6 +2,7 @@
 import json
 import io
 import sys
+import httplib
 from os import path
 from clr import StrongBox
 from math import pi
@@ -31,6 +32,7 @@ class Precast_panel(Precast_component,
     "Сборные панели."
 
     window_categorys = []
+    COLORISTIC_URI = r"vpp-sql04"
 
     # Префиксы которые используются
     windows_prefix = "221"
@@ -221,6 +223,7 @@ class Precast_panel(Precast_component,
 
     # Эта часть для выгрузки в колористику
     def make_old_format(self, result, old_format_path):
+        # echo(to_old_format)
         dir_path = old_format_path
         panel = result["value"]
         old_format = {
@@ -231,22 +234,39 @@ class Precast_panel(Precast_component,
         }
         for i in self.windows:
             old_format["components"].append(i.to_old_format())
-        file_name = path.join(dir_path, panel["mark"] + ".json")
         try:
-            with io.open(file_name, "w", encoding='utf8') as f:
-                string = json.dumps(old_format, sort_keys=True,
-                                    indent=4, ensure_ascii=False)
-                string = string.replace('"Body"', '"body"')
-                string = string.replace('"Window"', '"window"')
-                string = string.replace('"Connection"', '"connection"')
-                string = string.replace('"Balcony"', '"window"')
-                string = string.replace('"x"', '"X"')
-                string = string.replace('"y"', '"Y"')
-                string = string.replace('"z"', '"Z"')
-                f.write(string)
-                f.close()
+            string = json.dumps(old_format, sort_keys=True,
+                                indent=4, ensure_ascii=False)
+            string = string.replace('"Body"', '"body"')
+            string = string.replace('"Window"', '"window"')
+            string = string.replace('"Connection"', '"connection"')
+            string = string.replace('"Balcony"', '"window"')
+            string = string.replace('"x"', '"X"')
+            string = string.replace('"y"', '"Y"')
+            string = string.replace('"z"', '"Z"')
+            self.request_to_coloristic_server(json.loads("[" + string + "]"))
         except:
+            echo("{} не выгружена в базу колористики".format(self))
             pass
+
+    def get_mark_from_server(self, panel):
+        "Получить марку с сервиса."
+        pass
+
+    def request_to_coloristic_server(self, parameters, action_type=r"/panelsstage/Precast/v1/Panels/createPanel"):
+        """
+        Запрос в сервис колористики для создания панели.
+        """
+        parameters = json.dumps(parameters).replace('"', '\"')
+        headers = {
+            "Content-type": "application/json",
+            "Accept": "application/json"
+        }
+        conn = httplib.HTTPConnection(self.COLORISTIC_URI)
+        conn.request("POST", action_type, parameters, headers)
+        echo(self.COLORISTIC_URI, action_type)
+        response = conn.getresponse()
+        return response.read().decode("utf-8")
 
     def add_ifc_parameter(self):
         """
