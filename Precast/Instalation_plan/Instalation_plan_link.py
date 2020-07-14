@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from copy import deepcopy
 from common_scripts import echo
 from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, FamilyInstance, XYZ
 from Precast.Panel import Precast_panel
@@ -142,18 +143,23 @@ class Instalation_plan_link(object):
         return global_obj
 
     @classmethod
-    def all_panel_dict_old(cls, obj):
+    def all_panel_dict_old(cls, obj, common_data, axis):
+        "Преобразовываем в формат для колористики"
         all_panels_old = []
         for sec_num, section in obj.items():
+            cur_com_data = deepcopy(common_data)
+            cur_com_data["sectionName"] = sec_num
+            cur_com_data["fullName"] = sec_num
+            cur_com_data["assemblyData"] = {}
+            cur_com_data["assemblyData"]["axes"] = axis
+            cur_com_data["assemblyData"]["levels"] = []
             for level_num, level in section.items():
-                old_obj = {
-                    "precast": level_num,
+                new_obj = {
                     "level": level_num,
                     "precast": level,
-                    "section": int(sec_num)
                 }
-                all_panels_old.append(old_obj)
-        all_panels_old.sort(key=lambda x: int(x["level"]))
+                cur_com_data["assemblyData"]["levels"].append(new_obj)
+            all_panels_old.append(cur_com_data)
         return all_panels_old
 
     @staticmethod

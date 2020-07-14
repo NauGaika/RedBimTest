@@ -8,7 +8,7 @@ class Instalation_plan_json(object):
         grid_objects = []
         for i in grids.values():
             grid_objects.append(self.grid_to_dict(i))
-        grid_objects.sort(key=lambda x: x["local"])
+        grid_objects.sort(key=lambda x: x["localName"])
         if elevation:
             grid_objects = {
                 "Ismm": True,
@@ -23,10 +23,10 @@ class Instalation_plan_json(object):
         grid["direction"] = grid["direction"].Negate() if (round(
             grid["direction"].X, 5) < 0 or round(grid["direction"].Y, 5) < 0) else grid["direction"]
         return {
-            "local": grid["name"],
-            "position": self.make_xyz(grid["origin"], round_count=1),
-            "rotation": self.make_xyz(grid["direction"], to_mm=False),
-            "global": grid["global"]
+            "localName": grid["localName"],
+            "origin": self.make_xyz(grid["origin"], round_count=1),
+            "direction": self.make_xyz(grid["direction"], to_mm=False),
+            "globalName": grid["globalName"]
         }
 
     @staticmethod
