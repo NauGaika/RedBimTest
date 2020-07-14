@@ -62,17 +62,26 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
         old_format_obj = Instalation_plan_link.all_panel_dict_old(global_obj, common_data, axis)
         # echo(json.loads(self.get_block_from_db()))
         # echo(json.dumps([res], sort_keys=True, indent=4, ensure_ascii=False))
-        old_format_obj = json.loads(json.dumps(old_format_obj).replace("-0.0", '0.0'))
-        # self.save_montain_plan_to_file(old_format_obj)
-        echo(self.push_grid_plan_to_db(old_format_obj))
+        result = json.loads(self.push_build_assambly_to_db(old_format_obj))
+        if result:
+            res_str = "Не найдены панели"
+            for panel in result:
+                res_str += "\n{}".format(panel)
+            res_str += "\n" + "Монтажный план не загружен."
+            echo(res_str)
+        else:
+            echo("Монтажный план загружен в сервис")
+            self.print_result_upload(old_format_obj)
         # message("Монтажный план выгружен в {}".format(self.path_to_save))
 
-    def push_grid_plan_to_db(self, parameters, action_type=r"/panelsstage/Precast/v1/blocks/createBlockAssembly"):
+    def print_result_upload(self, obj):
+        "Выводит результаты загрузки."
+
+    def push_build_assambly_to_db(self, parameters, action_type=r"/panelsstage/Precast/v1/blocks/createBlockAssembly"):
         """
         Запрос в сервис колористики для создания панели.
         """
-        parameters = json.dumps(parameters, sort_keys=True,
-                      indent=4, ensure_ascii=False).replace('"', '\"')
+        parameters = json.dumps(parameters).replace('"', '\"')
         headers = {
             "Content-type": "application/json",
             "Accept": "application/json"
