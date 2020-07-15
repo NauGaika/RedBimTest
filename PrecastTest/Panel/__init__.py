@@ -11,15 +11,16 @@ from Autodesk.Revit.DB import Line, XYZ, CurveLoop, SolidCurveIntersectionOption
 from Autodesk.Revit.DB import BooleanOperationsUtils, BooleanOperationsType, BuiltInParameter
 from Autodesk.Revit.DB import AssemblyInstance, ElementId, AssemblyViewUtils
 
+sys.path.append(path.split(path.split(__file__)[0])[0])
 from common_scripts import echo, RB_Parameter_mixin
-from ..Common import Precast_component
-from ..Common.Precast_geometry import Precast_geometry
+from Common import Precast_component
+from Common.Precast_geometry import Precast_geometry
+from Common.Precast_validator import Precast_validator
 from .Precast_panel_finder import Precast_panel_finder
 from .Precast_panel_analys_geometry import Precast_panel_analys_geometry
 from .Precast_panel_json import Precast_panel_json
 from .Precast_panel_validate import Precast_panel_validate
 from .Precast_panel_indastry import Precast_panel_indastry
-from Precast.Common.Precast_validator import Precast_validator
 from System.Collections.Generic import List
 
 

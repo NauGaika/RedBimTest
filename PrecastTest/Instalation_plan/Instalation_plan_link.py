@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+from copy import deepcopy
 from common_scripts import echo
 from Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, FamilyInstance, XYZ
-from Precast.Panel import Precast_panel
+from ..Panel import Precast_panel
 from common_scripts.line_print import Line_printer
 from math import pi
 
@@ -18,6 +19,9 @@ class Instalation_plan_link(object):
         self.rvt_link_doc = rvt_link_doc
         self.start_point = start_point
         self.sections = {}
+        if start_point is None:
+            echo("""Не найдена стартовая точка проекта в {}.
+Необходимо, как минимум, две пересекающахися глобальных оси""".format(self))
 
     def __repr__(self):
         return "Связь {}".format(self.title)
@@ -44,57 +48,58 @@ class Instalation_plan_link(object):
         return self._panels
 
     def analys_panels(self, to_old=False):
-        panels_objs = {}
-        for panel in self.panels:
-            # echo(panel.system_tag)n
-            for section_num, levels in self.sections.items():
-                section_num = section_num
-                for level, transform in levels.items():
-                    level = str(int(level))
-                    # Line_printer.print_arc(position - self.start_point)
-                    position = self.crutch_of_position(panel)
-                    rotation = panel.rotation
-                    cur_poition = transform.OfPoint(
-                        position) - self.start_point
-                    level_str = str(level) if int(level) > 9 else "0" + str(level)
-                    colorIndex = panel.get_param("BDS_ColoristicsTag_Floor" + level_str)
-                    colorIndex = colorIndex.AsString() if colorIndex else None
-                    if to_old:
-                        obj = {
-                            "mark1": panel.system_tag,
-                            "mark2": panel.system_tag,
-                            "concrete": "B30",
-                            "colorIndex": colorIndex,
-                        }
-                    else:
-                        obj = {
-                            "mark": panel.system_tag,
-                            "panel": panel,
-                            "colorIndex": colorIndex
-                        }
-                    # Line_printer.print_arc(cur_poition, color="расн")
-                    obj["position"] = self.make_xyz(
-                        cur_poition, round_count=1, nullable_z=True)
-                    # echo(rotation)
-                    rot = transform.BasisX.AngleTo(XYZ(1, 0, 0))
-                    # echo("__")
-                    # echo(rotation)
-                    rotation -= rot
-                    if round(rotation, 7) < 0:
-                        rotation += pi * 2
-                    elif round(rotation - 2 * pi, 7) >= 0:
-                        rotation -= 2 * pi
+        if self.start_point:
+            panels_objs = {}
+            for panel in self.panels:
+                # echo(panel.system_tag)n
+                for section_num, levels in self.sections.items():
+                    section_num = section_num
+                    for level, transform in levels.items():
+                        level = str(int(level))
+                        # Line_printer.print_arc(position - self.start_point)
+                        position = self.crutch_of_position(panel)
+                        rotation = panel.rotation
+                        cur_poition = transform.OfPoint(
+                            position) - self.start_point
+                        level_str = str(level) if int(level) > 9 else "0" + str(level)
+                        colorIndex = panel.get_param("BDS_ColoristicsTag_Floor" + level_str)
+                        colorIndex = colorIndex.AsString() if colorIndex else None
+                        if to_old:
+                            obj = {
+                                "mark1": panel.system_tag,
+                                "mark2": panel.system_tag,
+                                "concrete": "B30",
+                                "colorIndex": colorIndex,
+                            }
+                        else:
+                            obj = {
+                                "mark": panel.system_tag,
+                                "panel": panel,
+                                "colorIndex": colorIndex
+                            }
+                        # Line_printer.print_arc(cur_poition, color="расн")
+                        obj["position"] = self.make_xyz(
+                            cur_poition, round_count=1, nullable_z=True)
+                        # echo(rotation)
+                        rot = transform.BasisX.AngleTo(XYZ(1, 0, 0))
+                        # echo("__")
+                        # echo(rotation)
+                        rotation -= rot
+                        if round(rotation, 7) < 0:
+                            rotation += pi * 2
+                        elif round(rotation - 2 * pi, 7) >= 0:
+                            rotation -= 2 * pi
 
-                    # echo(rotation)
-                    # rotation = round(rotation, 5)
-                    # if rotation - 0.00001 == 0:
-                    #     rotation = 0.0
-                    # echo(rotation)
-                    obj["rotation"] = rotation
-                    panels_objs.setdefault(section_num, {})
-                    panels_objs[section_num].setdefault(level, [])
-                    panels_objs[section_num][level].append(obj)
-        return panels_objs
+                        # echo(rotation)
+                        # rotation = round(rotation, 5)
+                        # if rotation - 0.00001 == 0:
+                        #     rotation = 0.0
+                        # echo(rotation)
+                        obj["rotation"] = rotation
+                        panels_objs.setdefault(section_num, {})
+                        panels_objs[section_num].setdefault(level, [])
+                        panels_objs[section_num][level].append(obj)
+            return panels_objs
 
     def crutch_of_position(self, panel):
         "Костыль пересчета позиции."
@@ -133,6 +138,8 @@ class Instalation_plan_link(object):
     def find_panels_in_links(cls, to_old=False):
         global_obj = {}
         for i in cls.rvt_links.values():
+            if i.start_point is None:
+                continue
             res = i.analys_panels(to_old=to_old)
             for section, levels in res.items():
                 for level, panels in levels.items():
@@ -142,18 +149,23 @@ class Instalation_plan_link(object):
         return global_obj
 
     @classmethod
-    def all_panel_dict_old(cls, obj):
+    def all_panel_dict_old(cls, obj, common_data, axis):
+        "Преобразовываем в формат для колористики"
         all_panels_old = []
         for sec_num, section in obj.items():
+            cur_com_data = deepcopy(common_data)
+            cur_com_data["sectionName"] = sec_num
+            cur_com_data["fullName"] = sec_num
+            cur_com_data["assemblyData"] = {}
+            cur_com_data["assemblyData"]["axes"] = axis
+            cur_com_data["assemblyData"]["levels"] = []
             for level_num, level in section.items():
-                old_obj = {
-                    "precast": level_num,
+                new_obj = {
                     "level": level_num,
                     "precast": level,
-                    "section": int(sec_num)
                 }
-                all_panels_old.append(old_obj)
-        all_panels_old.sort(key=lambda x: int(x["level"]))
+                cur_com_data["assemblyData"]["levels"].append(new_obj)
+            all_panels_old.append(cur_com_data)
         return all_panels_old
 
     @staticmethod

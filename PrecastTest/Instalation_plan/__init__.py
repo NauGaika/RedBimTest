@@ -3,6 +3,7 @@ import json
 import io
 import os
 import sys
+import httplib
 from Autodesk.Revit.DB import FilteredElementCollector, Grid, IntersectionResultArray
 from Autodesk.Revit.DB import RevitLinkInstance, BuiltInCategory, FamilyInstance, Wall
 from Autodesk.Revit.DB import FilteredElementCollector, Level, Transaction
@@ -20,33 +21,139 @@ from .Instalation_plan_tests import Instalation_plan_tests
 
 
 class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
+    COLORISTIC_URI = 'vpp-sql04'
+
     def __init__(self, doc):
         self.doc = doc
+        self.block_code = self.get_parameter_form_project_info("BDS_BlockCode")
+        self.block_name = self.get_parameter_form_project_info("BDS_BlockName")
+        self.building_name = self.get_parameter_form_project_info(
+            "BDS_BuildingName")
+
         super(Instalation_plan, self).__init__()
 
     def create_instalation_plan(self):
         "Создание файлов монтажного плана."
-        self.path_to_save = self.select_path()
+        # self.path_to_save = self.select_path()
         self.start_point, self.start_grids = self.find_start_point_and_grids()
+        # echo(self.start_point, self.start_grids)
         self.recalculate_grid_origins(
             self.grids, self.start_point, self.start_grids)
         Instalation_plan_link.create(self.rvt_links, self.start_point)
         global_obj = Instalation_plan_link.find_panels_in_links(to_old=True)
-        old_format_obj = Instalation_plan_link.all_panel_dict_old(global_obj)
-        res = {
-            "levels": old_format_obj,
-            "axes": self.grids_to_dict(self.grids, elevation=False)
+
+        axis = self.grids_to_dict(self.grids, elevation=False)
+        axis = [{
+            "position": i["origin"],
+            "rotation": i["direction"],
+            "local": i["localName"],
+            "global": i["globalName"],
+        } for i in axis]
+
+        common_data = {
+            "blockName": self.block_name,
+            "blockCode": self.block_code,
+            "buildingName": self.building_name,
+            "sectionName": None,
+            "fullName": None,
+            "assemblyData": {}
         }
-        self.save_montain_plan_to_file(res)
-        message("Монтажный план выгружен в {}".format(self.path_to_save))
+
+        old_format_obj = Instalation_plan_link.all_panel_dict_old(global_obj, common_data, axis)
+        # echo(json.loads(self.get_block_from_db()))
+        # echo(json.dumps([res], sort_keys=True, indent=4, ensure_ascii=False))
+        result = json.loads(self.push_build_assambly_to_db(old_format_obj))
+        if result:
+            res_str = "Не найдены панели"
+            for panel in result:
+                res_str += "\n{}".format(panel)
+            res_str += "\n" + "Монтажный план не загружен."
+            echo(res_str)
+        else:
+            echo("Монтажный план загружен в сервис")
+            self.print_result_upload(old_format_obj)
+        # message("Монтажный план выгружен в {}".format(self.path_to_save))
+
+    def print_result_upload(self, obj):
+        "Выводит результаты загрузки."
+
+    def push_build_assambly_to_db(self, parameters, action_type=r"/panelsstage/Precast/v1/blocks/createBlockAssembly"):
+        """
+        Запрос в сервис колористики для создания панели.
+        """
+        parameters = json.dumps(parameters).replace('"', '\"')
+        headers = {
+            "Content-type": "application/json",
+            "Accept": "application/json"
+        }
+        conn = httplib.HTTPConnection(self.COLORISTIC_URI)
+        conn.request("POST", action_type, parameters, headers)
+        response = conn.getresponse()
+        return response.read().decode("utf-8")
 
     def create_grid_plan(self):
-        self.path_to_save = self.select_path()
+        """
+        Создать файл осей.
+        """
+        # self.path_to_save = self.select_path()
         self.start_point, self.start_grids = self.find_start_point_and_grids()
         self.recalculate_grid_origins(
             self.grids, self.start_point, self.start_grids)
-        self.save_grids_file(self.grids_to_dict(self.global_grids))
-        message("Файл осей план выгружен в {}".format(self.path_to_save))
+        if self.block_code and self.block_name and self.building_name:
+            res = {
+                "blockName": self.block_name,
+                "blockCode": self.block_code,
+                "buildingName": self.building_name,
+                "gridsData": self.grids_to_dict(self.global_grids)
+            }
+            if len([i for i in res["gridsData"]["Grids"] if i["globalName"]]) < 4:
+                echo("Осей в файле меньше 4")
+            elif len(res["gridsData"]["Levels"]) < 2:
+                echo("Осей в файле меньше 2")
+            else:
+                if self.push_grid_plan_to_db([res]) == 'true':
+                    res_str = ""
+                    res_str += "Загрузка произошла успешно \n"
+                    res_str += "Имя площадки {} \n".format(self.block_name)
+                    res_str += "Номер площадки {} \n".format(self.block_code)
+                    res_str += "Имя строенния {} \n".format(self.building_name)
+                    res_str += "Загружены следующие оси: " + ", ".join([i["globalName"]
+                                                                        for i in res["gridsData"]["Grids"]]) + "\n"
+                    res_str += "Загружены следующие уровни: \n" + "\n\t".join(
+                        ["{} ({})".format(
+                            i["name"],
+                            i["elevation"]) for i in res["gridsData"]["Levels"]]
+                    )
+                    echo(res_str)
+
+    def get_parameter_form_project_info(self, par_name):
+        "Получение параметра из информации о проекте."
+        if not hasattr(self, "_project_info"):
+            self._project_info = FilteredElementCollector(self.doc).OfCategory(
+                BuiltInCategory.OST_ProjectInformation).FirstElement()
+        par = self._project_info.LookupParameter(par_name)
+        if par is None:
+            echo("{} не найден в проекте".format(par_name))
+            return None
+        val = par.AsString()
+        if not val:
+            echo("{} не заполнен в проекте".format(par_name))
+            return None
+        return val
+
+    def push_grid_plan_to_db(self, parameters, action_type=r"/panelsstage/Precast/v1/blocks/createBlockBuildingGrids"):
+        """
+        Запрос в сервис колористики для создания панели.
+        """
+        parameters = json.dumps(parameters).replace('"', '\"')
+        headers = {
+            "Content-type": "application/json",
+            "Accept": "application/json"
+        }
+        conn = httplib.HTTPConnection(self.COLORISTIC_URI)
+        conn.request("POST", action_type, parameters, headers)
+        response = conn.getresponse()
+        return response.read().decode("utf-8")
 
     def get_coloristic_mark(self):
         "Получаем колористические марки."
@@ -95,11 +202,11 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
                 Grid).WhereElementIsNotElementType().ToElements()
             self._grids = {
                 i.Name: {
-                    "name": i.Name,
+                    "localName": i.Name,
                     "direction": i.Curve.Direction,
                     "line": i.Curve,
                     "el": i,
-                    "global": i.LookupParameter("BDS_AxisGlobal").AsString() if i.LookupParameter("BDS_AxisGlobal") else ""
+                    "globalName": i.LookupParameter("BDS_AxisGlobal").AsString() if i.LookupParameter("BDS_AxisGlobal") else ""
                 } for i in self._grids}
             # echo(self._grids)
         return self._grids
@@ -108,7 +215,7 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
     def global_grids(self):
         if not hasattr(self, "_global_grids"):
             self._global_grids = {key: i for key,
-                                  i in self.grids.items() if i["global"]}
+                                  i in self.grids.items() if i["globalName"]}
         return self._global_grids
 
     @property
@@ -117,11 +224,11 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
             self._levels = FilteredElementCollector(self.doc).OfClass(
                 Level).WhereElementIsNotElementType().ToElements()
             self._levels = [{
-                "Name": i.Name,
-                "Elevation": round(i.Elevation * 304.8)
+                "name": i.Name,
+                "elevation": round(i.Elevation * 304.8)
             } for i in self._levels if i.Name.isdigit()]
             # echo(self._levels)
-            self._levels.sort(key=lambda x: x["Name"])
+            self._levels.sort(key=lambda x: x["name"])
         return self._levels
 
     @property
@@ -156,10 +263,10 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
         with io.open(os.path.join(self.path_to_save, file_name), "w", encoding='utf8') as f:
             el = json.dumps(save_obj, sort_keys=True,
                             indent=4, ensure_ascii=False)
-            el = el.replace('"global"', '"GlobalName"')
-            el = el.replace('"local"', '"LocalName"')
-            el = el.replace('"position"', '"Origin"')
-            el = el.replace('"rotation"', '"Direction"')
+            el = el.replace('"globalName"', '"GlobalName"')
+            el = el.replace('"localName"', '"LocalName"')
+            el = el.replace('"origin"', '"Origin"')
+            el = el.replace('"direction"', '"Direction"')
             f.write(el)
             f.close()
 
@@ -199,11 +306,13 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
                                         r_panel["panel"].document, {})
                                     result_obj[r_panel["panel"].document].setdefault(
                                         r_panel["panel"], {})
-                                    result_obj[r_panel["panel"].document][r_panel["panel"]][level_num] = c_panel["colorIndex"]
+                                    result_obj[r_panel["panel"].document][r_panel["panel"]
+                                                                          ][level_num] = c_panel["colorIndex"]
                                     # echo("Найдена панель {} с маркой {} в секции {} на этаже {}".format(c_panel["mark"], r_panel["mark"], section_num, level_num))
                                     break
                             else:
-                                echo("Не найдена панель {} в секции {} на этаже {}".format(c_panel["mark"], section_num, level_num))
+                                echo("Не найдена панель {} в секции {} на этаже {}".format(
+                                    c_panel["mark"], section_num, level_num))
                     else:
                         echo("Не найден {} этаж секции {} в текущем файле".format(
                             level_num, section_num))
@@ -271,7 +380,8 @@ class Instalation_plan(Instalation_plan_tests, Instalation_plan_json):
                         for panel, levels in panels.items():
                             panel = cur_doc.GetElement(ElementId(panel.Id))
                             for level, mark in levels.items():
-                                level = level if len(level) > 1 else "0" + level
+                                level = level if len(
+                                    level) > 1 else "0" + level
                                 panel.LookupParameter(
                                     "BDS_ColoristicsTag_Floor" + level).Set(mark)
                         t.Commit()
